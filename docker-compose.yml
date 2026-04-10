@@ -1,0 +1,46 @@
+services:
+  support_server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: support_server
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./server/prisma:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=prisma.settings
+      - PRISMA_ENV=production
+      - ALLOWED_HOSTS=*
+    command: python manage.py runserver 0.0.0.0:8000
+    networks:
+      - prisma_shared_net
+
+  support_celery:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: support_celery
+    command: celery -A prisma.celery worker --loglevel=info
+    volumes:
+      - ./server/prisma:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=prisma.settings
+      - PRISMA_ENV=production
+      - CELERY_BROKER_URL=redis://prisma_redis:6379/0
+      - REDIS_URL=redis://prisma_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://prisma_redis:6379/1
+      - CELERY_WORKER_CONCURRENCY=3
+    depends_on:
+      support_server:
+        condition: service_started
+    networks:
+      - prisma_shared_net
+
+networks:
+  prisma_shared_net:
+    external: true

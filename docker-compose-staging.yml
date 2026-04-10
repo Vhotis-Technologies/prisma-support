@@ -1,0 +1,78 @@
+# Support — standalone staging. Start client staging first (shared client_staging_redis).
+# docker compose -f docker-compose-staging.yml up -d --build
+# HTTP: client_staging_nginx on :8080 — routes /support/ to support_staging_server.
+
+name: prisma_support_staging
+
+services:
+  support_postgres:
+    image: postgres:16-alpine
+    container_name: support_postgres_staging
+    env_file:
+      - .env.staging
+    volumes:
+      - support_staging_pgdata:/var/lib/postgresql/data
+    networks:
+      - prisma_shared_net
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  support_staging_server:
+    container_name: support_staging_server
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8300:8000"
+    volumes:
+      - ./server/prisma:/app
+    env_file:
+      - .env.staging
+    environment:
+      - DJANGO_SETTINGS_MODULE=prisma.settings
+      - PRISMA_ENV=staging
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      support_postgres:
+        condition: service_healthy
+    networks:
+      - prisma_shared_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  support_staging_celery:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: support_staging_celery
+    command: celery -A prisma.celery worker --loglevel=info
+    volumes:
+      - ./server/prisma:/app
+    env_file:
+      - .env.staging
+    environment:
+      - DJANGO_SETTINGS_MODULE=prisma.settings
+      - PRISMA_ENV=staging
+      - CELERY_WORKER_CONCURRENCY=3
+    depends_on:
+      support_staging_server:
+        condition: service_started
+      support_postgres:
+        condition: service_healthy
+    networks:
+      - prisma_shared_net
+
+volumes:
+  support_staging_pgdata:
+
+networks:
+  prisma_shared_net:
+    external: true
