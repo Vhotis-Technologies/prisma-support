@@ -12,6 +12,8 @@ import type {
   RemoveSupportBranchResponse,
   RemoveSupportVehicleArg,
   RemoveSupportVehicleResponse,
+  RenewB2cSubscriptionArg,
+  RenewB2cSubscriptionResponse,
   RenewFleetSubscriptionArg,
   RenewFleetSubscriptionResponse,
   ReferredUserDetails,
@@ -23,6 +25,8 @@ import type {
   SupportFleetDetailResponse,
   SupportPartnerDetailResponse,
   SupportPartnerReferredUsersResponse,
+  TerminateB2cSubscriptionArg,
+  TerminateB2cSubscriptionResponse,
   TerminateFleetSubscriptionArg,
   TerminateFleetSubscriptionResponse,
 } from "@/app/interfaces/CustomerInterface";
@@ -214,6 +218,33 @@ const customerApi = createApi({
       ],
     }),
 
+    terminateB2cSubscription: builder.mutation<
+      TerminateB2cSubscriptionResponse,
+      TerminateB2cSubscriptionArg
+    >({
+      query: ({ userId, reason }) => ({
+        url: "/api/v1/customers/terminate_b2c_subscription/",
+        method: "PATCH",
+        data: { user_id: userId, ...(reason != null ? { reason } : {}) },
+      }),
+      invalidatesTags: (_r, _e, { userId }) => [
+        { type: "SupportCustomers", id: "b2c" },
+        { type: "SupportCustomer", id: `b2c-${userId}` },
+      ],
+    }),
+
+    renewB2cSubscription: builder.mutation<RenewB2cSubscriptionResponse, RenewB2cSubscriptionArg>({
+      query: ({ userId }) => ({
+        url: "/api/v1/customers/renew_b2c_subscription/",
+        method: "PATCH",
+        data: { user_id: userId },
+      }),
+      invalidatesTags: (_r, _e, { userId }) => [
+        { type: "SupportCustomers", id: "b2c" },
+        { type: "SupportCustomer", id: `b2c-${userId}` },
+      ],
+    }),
+
     removeSupportVehicle: builder.mutation<RemoveSupportVehicleResponse, RemoveSupportVehicleArg>({
       query: ({ vehicleId, fleetId, userId }) => ({
         url: "/api/v1/customers/remove_vehicle/",
@@ -284,6 +315,8 @@ export const {
   useGetSupportVehicleDetailQuery,
   useTerminateFleetSubscriptionMutation,
   useRenewFleetSubscriptionMutation,
+  useTerminateB2cSubscriptionMutation,
+  useRenewB2cSubscriptionMutation,
   useRemoveSupportVehicleMutation,
   useRemoveSupportBranchMutation,
   useSupportVehicleTransferMutation,

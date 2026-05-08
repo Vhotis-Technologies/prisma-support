@@ -63,6 +63,12 @@ const PRIMARY_ITEMS: NavItem[] = [
     icon: "gift-outline",
     route: "voucher",
   },
+  {
+    key: "accounting",
+    label: "Accounting",
+    icon: "calculator-outline",
+    route: "accounting",
+  },
 ];
 
 const SECONDARY_ITEMS: NavItem[] = [
@@ -153,6 +159,11 @@ function DrawerComponent(props: DrawerContentComponentProps) {
           activeRoute === "voucher" ||
           activeRoute === "VoucherScreen" ||
           activeRoute === "VoucherDetailScreen"
+        );
+      case "accounting":
+        return (
+          activeRoute === "AccountingScreen" ||
+          activeRoute === "AccountingDetailScreen"
         );
       default:
         return false;

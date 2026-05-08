@@ -117,7 +117,7 @@ const SupportVehicleComponent: React.FC<SupportVehicleComponentProps> = ({
         </View>
 
         <StyledText variant="bodySmall" style={[styles.metaLine, { color: muted }]} numberOfLines={2}>
-          VIN: {vehicle.vin || "—"} · Last: {vehicle.last_service_date || "—"}
+          Last: {vehicle.last_service_date || "—"}
         </StyledText>
       </View>
     </>

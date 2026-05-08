@@ -36,6 +36,7 @@ export default function PartnerReferredUsersScreen() {
       loyalty_tier: u.loyalty_tier,
       total_spend: u.total_spend,
       total_bookings: u.total_bookings,
+      subscription: u.subscription,
     }));
   }, [referredUsers]);
 

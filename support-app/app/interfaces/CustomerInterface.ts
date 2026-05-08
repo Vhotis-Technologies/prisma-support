@@ -29,6 +29,8 @@ export interface B2CListItem extends CustomerBase {
   loyalty_tier: string;
   total_spend: number;
   total_bookings: number;
+  /** Consumer app subscription; same shape as fleet support payload. */
+  subscription: FleetSubscription;
 }
 
 export interface B2CDetails extends B2CListItem {
@@ -86,7 +88,6 @@ export interface Vehicle {
   year: number;
   registration_number: string;
   color: string;
-  vin: string;
   image_url: string;
   status: "active" | "maintenance" | "inactive";
   last_service_date: string;
@@ -226,6 +227,28 @@ export interface TerminateFleetSubscriptionArg {
 
 export interface RenewFleetSubscriptionArg {
   fleetId: string;
+}
+
+export interface B2cSubscriptionMutationPayload {
+  message?: string;
+  customer?: B2CDetails;
+}
+
+export interface TerminateB2cSubscriptionResponse {
+  data?: B2cSubscriptionMutationPayload;
+}
+
+export interface RenewB2cSubscriptionResponse {
+  data?: B2cSubscriptionMutationPayload;
+}
+
+export interface TerminateB2cSubscriptionArg {
+  userId: string;
+  reason?: string;
+}
+
+export interface RenewB2cSubscriptionArg {
+  userId: string;
 }
 
 export interface RemoveSupportVehicleArg {

@@ -4,11 +4,30 @@ import type {
   FleetBranchDetails,
   FleetDetails,
   FleetListItem,
+  FleetSubscription,
   PartnerDetails,
   PartnerListItem,
   PartnerReferredVehicleEntry,
   ReferredUserDetails,
 } from "@/app/interfaces/CustomerInterface";
+
+const MOCK_B2C_SUB_EMPTY: FleetSubscription = {
+  subtype: "No plan",
+  billing_type: "monthly",
+  started_at: "",
+  ends_at: "",
+  is_trial: false,
+  status: "expired",
+};
+
+const MOCK_B2C_SUB_ACTIVE: FleetSubscription = {
+  subtype: "Prisma Lite",
+  billing_type: "monthly",
+  started_at: "2026-01-01T10:00:00Z",
+  ends_at: "2026-04-01T10:00:00Z",
+  is_trial: false,
+  status: "active",
+};
 
 export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
   {
@@ -22,6 +41,7 @@ export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
     loyalty_tier: "Platinum",
     total_spend: 2830.75,
     total_bookings: 21,
+    subscription: MOCK_B2C_SUB_ACTIVE,
     address: {
       address: "42 Oak Lane",
       city: "London",
@@ -45,7 +65,6 @@ export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
         year: 2020,
         registration_number: "LN20 GFL",
         color: "Blue",
-        vin: "WVWZZZAUZLW123456",
         image_url:
           "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -58,7 +77,6 @@ export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
         year: 2019,
         registration_number: "RD21 ABC",
         color: "Silver",
-        vin: "2HGFC2F59KH501234",
         image_url:
           "https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -77,6 +95,7 @@ export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
     loyalty_tier: "Gold",
     total_spend: 1490.0,
     total_bookings: 13,
+    subscription: MOCK_B2C_SUB_EMPTY,
     address: {
       address: "18 River View",
       city: "Reading",
@@ -99,7 +118,6 @@ export const MOCK_B2C_CUSTOMERS: B2CDetails[] = [
         year: 2021,
         registration_number: "RG21 CRL",
         color: "White",
-        vin: "JTDBU4EE9B9123456",
         image_url:
           "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=800&q=60",
         status: "maintenance",
@@ -211,7 +229,6 @@ export const MOCK_FLEET_BRANCH_DETAILS: FleetBranchDetails[] = [
         year: 2022,
         registration_number: "LD22 TRN",
         color: "White",
-        vin: "WF0XXXTTGX2A14567",
         image_url:
           "https://images.unsplash.com/photo-1556122071-e404eaedb77f?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -224,7 +241,6 @@ export const MOCK_FLEET_BRANCH_DETAILS: FleetBranchDetails[] = [
         year: 2021,
         registration_number: "LD71 VTO",
         color: "Grey",
-        vin: "WDF63960313884521",
         image_url:
           "https://images.unsplash.com/photo-1517949908118-72f7b349d1f6?auto=format&fit=crop&w=800&q=60",
         status: "maintenance",
@@ -263,7 +279,6 @@ export const MOCK_FLEET_BRANCH_DETAILS: FleetBranchDetails[] = [
         year: 2020,
         registration_number: "LS20 VVR",
         color: "Silver",
-        vin: "W0L2VAF68L7004581",
         image_url:
           "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -302,7 +317,6 @@ export const MOCK_FLEET_BRANCH_DETAILS: FleetBranchDetails[] = [
         year: 2019,
         registration_number: "DF19 TFC",
         color: "Blue",
-        vin: "VF1FL000XKJ873214",
         image_url:
           "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=60",
         status: "inactive",
@@ -333,7 +347,6 @@ export const MOCK_PARTNER_CUSTOMERS: PartnerDetails[] = [
         year: 2020,
         registration_number: "BC20 VAN",
         color: "Silver",
-        vin: "WF0XXXGCDXLF12345",
         image_url:
           "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -378,6 +391,7 @@ export const MOCK_PARTNER_REFERRED_USERS: ReferredUserDetails[] = [
     loyalty_tier: "Silver",
     total_spend: 940.2,
     total_bookings: 9,
+    subscription: MOCK_B2C_SUB_ACTIVE,
     address: {
       address: "12 King Street",
       city: "Manchester",
@@ -403,7 +417,6 @@ export const MOCK_PARTNER_REFERRED_USERS: ReferredUserDetails[] = [
         year: 2021,
         registration_number: "MX21 BCD",
         color: "Black",
-        vin: "WBA8A92070K123456",
         image_url:
           "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=60",
         status: "active",
@@ -416,7 +429,6 @@ export const MOCK_PARTNER_REFERRED_USERS: ReferredUserDetails[] = [
         year: 2022,
         registration_number: "EV22 TES",
         color: "White",
-        vin: "5YJ3E1EA1NF567890",
         image_url:
           "https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=800&q=60",
         status: "maintenance",
@@ -436,6 +448,7 @@ export const MOCK_PARTNER_REFERRED_USERS: ReferredUserDetails[] = [
     loyalty_tier: "Gold",
     total_spend: 1612.9,
     total_bookings: 14,
+    subscription: MOCK_B2C_SUB_EMPTY,
     address: {
       address: "4 Deansgate",
       city: "Manchester",
@@ -461,7 +474,6 @@ export const MOCK_PARTNER_REFERRED_USERS: ReferredUserDetails[] = [
         year: 2020,
         registration_number: "MN20 AUD",
         color: "Grey",
-        vin: "WAUZZZ8U3LR045612",
         image_url:
           "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=800&q=60",
         status: "active",

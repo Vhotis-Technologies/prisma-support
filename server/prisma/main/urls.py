@@ -13,6 +13,7 @@ from main.views.customers import SupportCustomersProxyView
 from main.views.activities import SupportActivitiesProxyView
 from main.views.tickets import SupportTicketsProxyView
 from main.views.vouchers import SupportVouchersProxyView
+from main.views.accounting import SupportAccountingProxyView
 from main.views.password_reset import (
     RequestPasswordResetView,
     ResetPasswordView,
@@ -60,6 +61,11 @@ urlpatterns = [
         "vouchers/<str:action>/",
         SupportVouchersProxyView.as_view(),
         name="vouchers",
+    ),
+    path(
+        "accounting/<str:action>/",
+        SupportAccountingProxyView.as_view(),
+        name="accounting",
     ),
     path("auth/password-reset/", RequestPasswordResetView.as_view(), name="request_password_reset"),
     path(

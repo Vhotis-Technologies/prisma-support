@@ -96,6 +96,10 @@ const MainLayout = () => {
             name="voucher"
             options={{ title: "Voucher", headerTitle: "Voucher" }}
           />
+          <Drawer.Screen
+            name="accounting"
+            options={{ title: "Accounting", headerTitle: "Accounting" }}
+          />
         </Drawer>
     </React.Fragment>
   );

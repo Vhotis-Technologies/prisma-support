@@ -32,19 +32,19 @@ else:
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app',
+    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app',
     'https://support.prismavalet.com',
 ]
 ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app',
+    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app',
     'https://support.prismavalet.com',
 ]
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app',
+    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app', 
     'https://support.prismavalet.com',
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -285,12 +285,12 @@ else:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors.split(',') if o.strip()]
 
 
-SUPPORT_API_URL = os.getenv('SUPPORT_API_URL', 'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app/support')
+SUPPORT_API_URL = os.getenv('SUPPORT_API_URL', 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/support')
 # Optional fallback for password-reset email links if SUPPORT_API_URL is unset in an environment.
 BASE_URL = os.getenv('BASE_URL', '').strip()
-DETAILER_API_URL = os.getenv('DETAILER_API_URL', 'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app/detailer')
-_default_client_api = 'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app/client'
-CLIENT_API_URL = os.getenv('CLIENT_API_URL', _default_client_api or 'https://c620-2a02-8084-c80-ea80-3d81-12aa-43f9-717.ngrok-free.app/client').strip()
+DETAILER_API_URL = os.getenv('DETAILER_API_URL', 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/detailer')
+_default_client_api = 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/client'
+CLIENT_API_URL = os.getenv('CLIENT_API_URL', _default_client_api or 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/client').strip()
 
 # Must match client SUPPORT_INTERNAL_API_KEY for proxy calls to client support dashboard.
 SUPPORT_INTERNAL_API_KEY = (os.getenv('SUPPORT_INTERNAL_API_KEY') or '').strip()

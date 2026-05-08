@@ -1,0 +1,112 @@
+"""
+HTTP proxy: support-app → **client** Prisma support accounting routes.
+
+JSON actions forward JSON as-is. ``export_month_pdf`` passes through binary PDF bytes
+and Content-Disposition headers.
+"""
+import logging
+
+import requests
+from django.conf import settings
+from django.http import HttpResponse
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
+
+JSON_ACTIONS = frozenset(
+    {
+        "get_monthly_summaries",
+        "get_month_detail",
+    }
+)
+PDF_ACTION = "export_month_pdf"
+
+
+class SupportAccountingProxyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def perform_content_negotiation(self, request, force=False):
+        if self.kwargs.get("action") == PDF_ACTION:
+            return JSONRenderer(), JSONRenderer.media_type
+        return super().perform_content_negotiation(request, force)
+
+    def _client_url(self, action: str) -> str:
+        base = (settings.CLIENT_API_URL or "").rstrip("/")
+        return f"{base}/api/v1/support/accounting/{action}/"
+
+    def _headers(self) -> dict[str, str]:
+        headers = {"Accept": "application/json"}
+        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
+        if key:
+            headers["X-Support-Internal-Key"] = key
+        return headers
+
+    def _forward_json(self, resp: requests.Response) -> Response:
+        try:
+            payload = resp.json() if resp.content else {}
+        except (ValueError, TypeError):
+            payload = {"error": resp.text or "Invalid JSON from client"}
+        return Response(payload, status=resp.status_code)
+
+    def get(self, request, action, *args, **kwargs):
+        if action == PDF_ACTION:
+            return self._forward_pdf(request)
+        if action not in JSON_ACTIONS:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+        base = (settings.CLIENT_API_URL or "").rstrip("/")
+        if not base:
+            return Response(
+                {"error": "CLIENT_API_URL is not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        url = self._client_url(action)
+        params = dict(request.query_params)
+        try:
+            resp = requests.get(url, headers=self._headers(), params=params, timeout=120)
+        except requests.RequestException as exc:
+            logger.warning("Support accounting proxy GET failed: %s", exc)
+            return Response(
+                {"error": "Client API unavailable", "detail": str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return self._forward_json(resp)
+
+    def _forward_pdf(self, request):
+        base = (settings.CLIENT_API_URL or "").rstrip("/")
+        if not base:
+            return Response(
+                {"error": "CLIENT_API_URL is not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        url = self._client_url(PDF_ACTION)
+        # Client API uses DRF APIView; Accept application/pdf alone triggers NotAcceptable before the PDF handler runs.
+        headers = {"Accept": "*/*"}
+        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
+        if key:
+            headers["X-Support-Internal-Key"] = key
+        params = dict(request.query_params)
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=120)
+        except requests.RequestException as exc:
+            logger.warning("Support accounting PDF proxy failed: %s", exc)
+            return Response(
+                {"error": "Client API unavailable", "detail": str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if resp.status_code != status.HTTP_200_OK:
+            return self._forward_json(resp)
+
+        django_resp = HttpResponse(
+            resp.content,
+            content_type=resp.headers.get("Content-Type", "application/pdf"),
+        )
+        cd = resp.headers.get("Content-Disposition")
+        if cd:
+            django_resp["Content-Disposition"] = cd
+        return django_resp

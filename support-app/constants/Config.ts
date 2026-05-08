@@ -1,4 +1,4 @@
-/**
+  /**
  * App config from Expo extra: Stripe key, API URLs (detailer, customer, websocket), Google API keys. Fallbacks for dev.
  */
 import Constants from "expo-constants";
@@ -12,9 +12,31 @@ const getConfig = () => {
 
 const config = getConfig();
 
-// Stripe Configuration
+/** Baked at build time via app.config.js (EXPO_PUBLIC_APP_ENV) + eas.json per profile. */
+export const APP_ENV =
+  (config.appEnv as string | undefined) ||
+  (typeof process !== "undefined" &&
+    (process as { env?: { EXPO_PUBLIC_APP_ENV?: string } }).env
+      ?.EXPO_PUBLIC_APP_ENV) ||
+  "development";
+
+export function getStripePublishableKey(): string | undefined {
+  const stripe = config.stripe as
+    | { publishableKey?: string; productionPublishableKey?: string }
+    | undefined;
+  if (!stripe) return undefined;
+  if (APP_ENV === "production") {
+    return stripe.productionPublishableKey || stripe.publishableKey;
+  }
+  return stripe.publishableKey;
+}
+
+export const STRIPE_PUBLISHABLE_KEY = getStripePublishableKey();
+
+// Stripe Configuration (raw keys; prefer STRIPE_PUBLISHABLE_KEY)
 export const STRIPE_CONFIG = {
   publishableKey: config.stripe?.publishableKey,
+  productionPublishableKey: config.stripe?.productionPublishableKey,
 };
 
 // API Configuration with fallbacks for testing
@@ -26,7 +48,6 @@ export const API_CONFIG = {
   websocketUrl: config.websocket_url,
 };
 
-console.log('support app url', config);
 
 // Google API Keys Configuration
 // Note: The API key should be added to app.json or app.config.js under extra.googleApiKeys
@@ -46,12 +67,12 @@ export const KEY_CONFIGS = {
 
 // App Configuration
 export const APP_CONFIG = {
-  name: Constants.expoConfig?.name || "Prisma Client",
+  name: Constants.expoConfig?.name || "support-app",
   version: Constants.expoConfig?.version || "1.0.0",
-  scheme: Constants.expoConfig?.scheme || "prismaclient",
+  scheme: Constants.expoConfig?.scheme || "supportapp",
   projectId:
     Constants.expoConfig?.extra?.eas?.projectId ||
-    "12a19ebe-4dc8-457b-99e9-ccc269808a5c",
+    "3ecd3333-a225-44f2-9799-4119919ca371",
 };
 
 // Validation (missing keys are handled at runtime where needed)

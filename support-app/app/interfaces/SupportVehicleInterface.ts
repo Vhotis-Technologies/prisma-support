@@ -11,7 +11,6 @@ export interface SupportVehicleDetailVehicle {
   registration_number?: string;
   licence?: string;
   country?: string;
-  vin?: string;
   image?: string | null;
   owner_count?: number;
 }

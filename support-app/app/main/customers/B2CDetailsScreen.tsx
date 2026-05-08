@@ -1,11 +1,19 @@
 import React from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import StyledText from "@/app/components/helpers/StyledText";
 import { useCustomerFlow } from "@/app/app_hooks/useCustomerFlow";
+import { useAlertContext } from "@/app/contexts/AlertContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
+import type { FleetSubscription } from "@/app/interfaces/CustomerInterface";
 import StyledButton from "@/app/components/helpers/StyledButton";
 
 export default function B2CDetailsScreen() {
@@ -18,9 +26,82 @@ export default function B2CDetailsScreen() {
   const iconColor = useThemeColor({}, "icons");
   const muted = useThemeColor({ light: "#757575", dark: "#9E9E9E" }, "text");
   const tint = useThemeColor({}, "tint");
+  const success = useThemeColor({}, "success");
+  const warning = useThemeColor({}, "warning");
+  const error = useThemeColor({}, "error");
   const primary = useThemeColor({}, "primary");
 
-  const { customer, isLoading, isError } = useCustomerFlow(customerId, "b2c");
+  const { setAlertConfig, setIsVisible } = useAlertContext();
+  const {
+    customer,
+    isLoading,
+    isError,
+    terminateSubscription,
+    renewSubscription,
+    terminateSubscriptionLoading,
+    renewSubscriptionLoading,
+  } = useCustomerFlow(customerId, "b2c");
+
+  const subscription: FleetSubscription | null = customer?.subscription ?? null;
+
+  const formatDateTime = (value?: string) => {
+    if (!value) return "N/A";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "N/A";
+    return parsed.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const subscriptionState = (() => {
+    if (!subscription?.subtype || subscription.subtype === "No plan") {
+      return { label: "No subscription", color: muted };
+    }
+    if (subscription.status === "terminated") {
+      return { label: "Terminated", color: error };
+    }
+    if (subscription.status === "expired") {
+      return { label: "Expired", color: error };
+    }
+    if (subscription.is_trial) {
+      return { label: "Trial active", color: warning };
+    }
+    return { label: "Active", color: success };
+  })();
+
+  const onTerminateSubscription = () => {
+    if (!subscription || subscription.status === "terminated") return;
+    setAlertConfig({
+      isVisible: true,
+      title: "Terminate subscription",
+      message: `Terminate the ${subscription.subtype} plan (${subscription.billing_type} billing) for ${customer?.name}?`,
+      type: "warning",
+      confirmLabel: "Terminate",
+      onClose: () => setIsVisible(false),
+      onConfirm: () => {
+        void terminateSubscription("Support termination");
+      },
+    });
+  };
+
+  const onRenewSubscription = () => {
+    if (!subscription) return;
+    setAlertConfig({
+      isVisible: true,
+      title: "Renew subscription",
+      message: `Renew ${customer?.name} consumer subscription for another ${subscription.billing_type} billing period?`,
+      type: "warning",
+      confirmLabel: "Renew",
+      onClose: () => setIsVisible(false),
+      onConfirm: () => {
+        void renewSubscription();
+      },
+    });
+  };
 
   if (!customerId) {
     return (
@@ -54,6 +135,8 @@ export default function B2CDetailsScreen() {
     );
   }
 
+  const subBusy = terminateSubscriptionLoading || renewSubscriptionLoading;
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor }]}
@@ -80,6 +163,110 @@ export default function B2CDetailsScreen() {
             </StyledText>
             <StyledText variant="titleMedium">{customer.total_bookings}</StyledText>
           </View>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+        <View style={styles.subscriptionHeader}>
+          <StyledText variant="titleMedium">Subscription</StyledText>
+          <View
+            style={[
+              styles.subscriptionPill,
+              {
+                borderColor: subscriptionState.color,
+                backgroundColor: `${subscriptionState.color}18`,
+              },
+            ]}
+          >
+            <StyledText
+              variant="labelSmall"
+              style={{
+                color: subscriptionState.color,
+                fontFamily: "BarlowMedium",
+              }}
+            >
+              {subscriptionState.label}
+            </StyledText>
+          </View>
+        </View>
+
+        <StyledText variant="bodySmall" color={muted}>
+          Plan: {subscription?.subtype?.trim() ? subscription.subtype : "N/A"}
+        </StyledText>
+        <StyledText variant="bodySmall" color={muted}>
+          Billing: {subscription?.billing_type ?? "N/A"}
+        </StyledText>
+        <StyledText variant="bodySmall" color={muted}>
+          Started: {formatDateTime(subscription?.started_at)}
+        </StyledText>
+        <StyledText variant="bodySmall" color={muted}>
+          Trial: {subscription?.is_trial ? "Yes" : "No"}
+        </StyledText>
+        {subscription?.is_trial && subscription.trial_ends_at ? (
+          <StyledText variant="bodySmall" color={muted}>
+            Trial ends: {formatDateTime(subscription.trial_ends_at)}
+          </StyledText>
+        ) : null}
+        <StyledText variant="bodySmall" color={muted}>
+          Subscription ends: {formatDateTime(subscription?.ends_at)}
+        </StyledText>
+        {subscription?.terminated_at ? (
+          <StyledText variant="bodySmall" color={muted}>
+            Terminated: {formatDateTime(subscription.terminated_at)}
+          </StyledText>
+        ) : null}
+
+        <View style={styles.subscriptionActions}>
+          <Pressable
+            onPress={onTerminateSubscription}
+            disabled={
+              subBusy ||
+              !subscription ||
+              subscription.status === "terminated" ||
+              subscription.subtype === "No plan"
+            }
+            style={({ pressed }) => [
+              styles.subscriptionActionBtn,
+              {
+                borderColor: error,
+                opacity:
+                  subBusy ||
+                  !subscription ||
+                  subscription.status === "terminated" ||
+                  subscription.subtype === "No plan"
+                    ? 0.5
+                    : pressed
+                      ? 0.84
+                      : 1,
+              },
+            ]}
+          >
+            <Ionicons name="close-circle-outline" size={16} color={error} />
+            <StyledText
+              variant="labelSmall"
+              style={{ color: error, fontFamily: "BarlowMedium" }}
+            >
+              Terminate subscription
+            </StyledText>
+          </Pressable>
+
+          <Pressable
+            onPress={onRenewSubscription}
+            disabled={subBusy || !subscription || subscription.subtype === "No plan"}
+            style={({ pressed }) => [
+              styles.subscriptionActionBtn,
+              {
+                borderColor: tint,
+                opacity:
+                  subBusy || !subscription || subscription.subtype === "No plan" ? 0.5 : pressed ? 0.84 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="refresh-outline" size={16} color={tint} />
+            <StyledText variant="labelSmall" style={{ color: tint, fontFamily: "BarlowMedium" }}>
+              Renew subscription
+            </StyledText>
+          </Pressable>
         </View>
       </View>
 
@@ -167,6 +354,33 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  subscriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  subscriptionPill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  subscriptionActions: {
+    marginTop: 8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  subscriptionActionBtn: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -178,18 +392,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 16,
-  },
-  actionButton: {
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  actionText: {
-    color: "#fff",
-    fontFamily: "BarlowMedium",
   },
 });

@@ -131,22 +131,6 @@ export default function SupportVehicleDetailsScreen() {
                 </View>
               </View>
 
-              {vehicle.vin ? (
-                <View style={styles.infoItem}>
-                  <Ionicons name="barcode-outline" size={20} color={iconColor} />
-                  <View style={styles.infoItemText}>
-                    <StyledText variant="bodySmall" style={{ color: iconColor }}>
-                      VIN
-                    </StyledText>
-                    <StyledText
-                      variant="bodyMedium"
-                      style={{ color: textColor, fontWeight: "500", fontFamily: "monospace" }}
-                    >
-                      {vehicle.vin}
-                    </StyledText>
-                  </View>
-                </View>
-              ) : null}
             </View>
           </View>
         </View>

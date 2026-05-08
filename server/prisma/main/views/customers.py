@@ -30,6 +30,8 @@ PATCH_ACTIONS = frozenset(
     {
         "terminate_fleet_subscription",
         "renew_fleet_subscription",
+        "terminate_b2c_subscription",
+        "renew_b2c_subscription",
         "remove_vehicle",
         "remove_branch",
         "vehicle_transfer",

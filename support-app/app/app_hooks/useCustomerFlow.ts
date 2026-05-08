@@ -20,9 +20,11 @@ import {
   useGetSupportB2cCustomerDetailQuery,
   useGetSupportFleetCustomerDetailQuery,
   useGetSupportPartnerCustomerDetailQuery,
+  useRenewB2cSubscriptionMutation,
   useRenewFleetSubscriptionMutation,
   useRemoveSupportBranchMutation,
   useRemoveSupportVehicleMutation,
+  useTerminateB2cSubscriptionMutation,
   useTerminateFleetSubscriptionMutation,
 } from "@/app/store/api/customerApi";
 
@@ -101,38 +103,63 @@ export function useCustomerFlow(customerId: string, segment: CustomerSegment) {
     [setAlertConfig, setIsVisible]
   );
 
-  const [terminateFleetSubscriptionMut, { isLoading: terminateSubscriptionLoading }] =
+  const [terminateFleetSubscriptionMut, { isLoading: terminateFleetLoading }] =
     useTerminateFleetSubscriptionMutation();
-  const [renewFleetSubscriptionMut, { isLoading: renewSubscriptionLoading }] =
+  const [renewFleetSubscriptionMut, { isLoading: renewFleetLoading }] =
     useRenewFleetSubscriptionMutation();
+  const [terminateB2cSubscriptionMut, { isLoading: terminateB2cLoading }] =
+    useTerminateB2cSubscriptionMutation();
+  const [renewB2cSubscriptionMut, { isLoading: renewB2cLoading }] = useRenewB2cSubscriptionMutation();
   const [removeVehicleMut, { isLoading: removeVehicleLoading }] = useRemoveSupportVehicleMutation();
   const [removeBranchMut, { isLoading: removeBranchLoading }] = useRemoveSupportBranchMutation();
 
   const terminateSubscription = useCallback(
     async (reason?: string) => {
-      if (segment !== "fleets" || !customerId) return;
+      if (!customerId) return;
       try {
-        await terminateFleetSubscriptionMut({
-          fleetId: customerId,
-          ...(reason != null && reason.trim() ? { reason: reason.trim() } : {}),
-        }).unwrap();
+        if (segment === "fleets") {
+          await terminateFleetSubscriptionMut({
+            fleetId: customerId,
+            ...(reason != null && reason.trim() ? { reason: reason.trim() } : {}),
+          }).unwrap();
+        } else if (segment === "b2c") {
+          await terminateB2cSubscriptionMut({
+            userId: customerId,
+            ...(reason != null && reason.trim() ? { reason: reason.trim() } : {}),
+          }).unwrap();
+        } else {
+          return;
+        }
         await refetch();
       } catch (e) {
         showError("Could not terminate subscription", getErrMsg(e));
       }
     },
-    [segment, customerId, terminateFleetSubscriptionMut, refetch, showError]
+    [
+      segment,
+      customerId,
+      terminateFleetSubscriptionMut,
+      terminateB2cSubscriptionMut,
+      refetch,
+      showError,
+    ]
   );
 
   const renewSubscription = useCallback(async () => {
-    if (segment !== "fleets" || !customerId) return;
+    if (!customerId) return;
     try {
-      await renewFleetSubscriptionMut({ fleetId: customerId }).unwrap();
+      if (segment === "fleets") {
+        await renewFleetSubscriptionMut({ fleetId: customerId }).unwrap();
+      } else if (segment === "b2c") {
+        await renewB2cSubscriptionMut({ userId: customerId }).unwrap();
+      } else {
+        return;
+      }
       await refetch();
     } catch (e) {
       showError("Could not renew subscription", getErrMsg(e));
     }
-  }, [segment, customerId, renewFleetSubscriptionMut, refetch, showError]);
+  }, [segment, customerId, renewFleetSubscriptionMut, renewB2cSubscriptionMut, refetch, showError]);
 
   const removeVehicle = useCallback(
     async (args: { vehicleId: string; fleetId?: string; userId?: string }) => {
@@ -171,8 +198,8 @@ export function useCustomerFlow(customerId: string, segment: CustomerSegment) {
     renewSubscription,
     removeVehicle,
     removeBranch,
-    terminateSubscriptionLoading,
-    renewSubscriptionLoading,
+    terminateSubscriptionLoading: terminateFleetLoading || terminateB2cLoading,
+    renewSubscriptionLoading: renewFleetLoading || renewB2cLoading,
     removeVehicleLoading,
     removeBranchLoading,
   } as UseCustomerFlowResult<CustomerSegment>;
