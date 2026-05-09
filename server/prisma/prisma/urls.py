@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 def health(_request):
@@ -28,3 +30,8 @@ urlpatterns = [
     path('support-admin/', admin.site.urls),
     path('api/v1/', include('main.urls')),
 ]
+
+# Dev-only static (WHITENOISE serves collected files when DEBUG=False).
+# Production/staging media uses object storage — do not mirror MEDIA_URL here.
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
