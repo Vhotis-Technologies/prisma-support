@@ -23,8 +23,6 @@ expo-env.d.ts
 
 # debug
 npm-debug.*
-yarn-debug.*
-yarn-error.*
 
 # macOS
 .DS_Store
@@ -34,18 +32,18 @@ yarn-error.*
 .vscode/settings.json
 .idea/
 
-# local env files
-.env*.local
-
 # typescript
 *.tsbuildinfo
 
-app-example
 
-redis/data/dump.rdb
+app-example
 
 .env
 .env.staging
-support-app/google-services.json 
-support-app/eas.json
-support-app/    prisma-client-f1fb0-firebase-adminsdk-fbsvc-7f6943df3f.json
+env
+
+redis/data/dump.rdb
+
+prisma_client/node_modules
+support-app/google-services.json
+support-app/prisma-support-f1fb0-firebase-adminsdk-fbsvc-ccf1ad777b.json
