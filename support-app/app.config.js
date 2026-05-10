@@ -13,7 +13,7 @@ const envUrls = {
     websocket_url: "wss://support.prismavalet.com/ws/support/",
   },
   staging: {
-    support_app_url: "https://stagingsupport.prismavalet.com",
+    support_app_url: "https://staging.support.prismavalet.com",
     detailer_app_url: "https://staging.crew.prismavalet.com",
     customer_app_url: "https://staging.client.prismavalet.com",
     websocket_url: "wss://stagingsupport.prismavalet.com/ws/support/",
