@@ -20,6 +20,8 @@ function statusLabel(s: VoucherListStatus): string {
       return "Expired";
     case "inactive":
       return "Inactive";
+    case "pending_payment":
+      return "Awaiting payment";
     default:
       return s;
   }
@@ -38,6 +40,8 @@ function statusColor(
       return colors.warning;
     case "inactive":
       return colors.text;
+    case "pending_payment":
+      return colors.primary;
     default:
       return colors.text;
   }
@@ -60,9 +64,14 @@ export default function VoucherItem({ voucher, onPress }: VoucherItemProps) {
   const primary = useThemeColor({}, "primary");
   const text = useThemeColor({}, "text");
 
+  const codeDisplay = useMemo(() => {
+    if (voucher.kind === "gift" && !voucher.isPaid) return "Awaiting payment";
+    return voucher.code || "—";
+  }, [voucher]);
+
   const displayStatus = useMemo(
     () => getVoucherDisplayStatus(voucher),
-    [voucher]
+    [voucher],
   );
 
   const badgeColor = useMemo(
@@ -92,7 +101,7 @@ export default function VoucherItem({ voucher, onPress }: VoucherItemProps) {
       </View>
       <View style={styles.body}>
         <StyledText variant="titleSmall" numberOfLines={1}>
-          {voucher.code}
+          {codeDisplay}
         </StyledText>
         <StyledText
           variant="bodySmall"

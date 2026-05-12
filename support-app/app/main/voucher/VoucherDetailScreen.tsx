@@ -13,10 +13,11 @@ import StyledButton from "@/app/components/helpers/StyledButton";
 import {
   getVoucherDisplayStatus,
   type VoucherListStatus,
+  type GiftVoucherDetails,
 } from "@/app/interfaces/VoucherInterface";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
-import { useVoucherDetailFlow } from "@/app/app_hooks/useVoucherFlow";
+import { useVoucherDetailFlow, type VoucherTabKind } from "@/app/app_hooks/useVoucherFlow";
 
 function statusLabel(s: VoucherListStatus): string {
   switch (s) {
@@ -28,6 +29,8 @@ function statusLabel(s: VoucherListStatus): string {
       return "Expired";
     case "inactive":
       return "Inactive";
+    case "pending_payment":
+      return "Awaiting payment";
     default:
       return s;
   }
@@ -80,7 +83,12 @@ function DetailRow({
 }
 
 export default function VoucherDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, kind: kindParam } = useLocalSearchParams<{
+    id: string;
+    kind?: string;
+  }>();
+  const tabKind: VoucherTabKind =
+    kindParam === "gift" ? "gift" : "winner";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const {
@@ -90,7 +98,12 @@ export default function VoucherDetailScreen() {
     deactivateVoucher,
     canDeactivate,
     isUpdating,
-  } = useVoucherDetailFlow(id);
+  } = useVoucherDetailFlow(id, tabKind);
+
+  const gift =
+    voucher && voucher.kind === "gift"
+      ? (voucher as GiftVoucherDetails)
+      : null;
 
   const backgroundColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "borders");
@@ -110,6 +123,12 @@ export default function VoucherDetailScreen() {
     [voucher],
   );
 
+  const codeDisplay = useMemo(() => {
+    if (!voucher) return "—";
+    if (voucher.kind === "gift" && !voucher.isPaid) return "Awaiting payment";
+    return voucher.code || "—";
+  }, [voucher]);
+
   const statusColor = useMemo(() => {
     switch (displayStatus) {
       case "active":
@@ -120,6 +139,8 @@ export default function VoucherDetailScreen() {
         return warning;
       case "inactive":
         return text;
+      case "pending_payment":
+        return primary;
       default:
         return text;
     }
@@ -164,7 +185,7 @@ export default function VoucherDetailScreen() {
         <View style={[styles.hero, { borderColor }]}>
           <View style={styles.heroTop}>
             <StyledText variant="bodyMedium" style={styles.code}>
-              {voucher.code}
+              {codeDisplay}
             </StyledText>
             <View
               style={[
@@ -208,6 +229,71 @@ export default function VoucherDetailScreen() {
           />
         </View>
 
+        {gift ? (
+          <View style={[styles.section, { borderColor }]}>
+            <StyledText variant="titleMedium" style={styles.sectionTitle}>
+              Purchase
+            </StyledText>
+            <DetailRow
+              label="Purchaser"
+              value={gift.purchaserLabel ?? gift.purchaserEmail ?? "—"}
+              icon="cart-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Purchaser email"
+              value={gift.purchaserEmail ?? "—"}
+              icon="at-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Use window"
+              value={`${gift.validityDays} days (from payment)`}
+              icon="timer-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Charge currency"
+              value={(gift.purchaseCurrency || "eur").toUpperCase()}
+              icon="cash-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Recipient email sent"
+              value={formatDetailTime(gift.emailSentAt)}
+              icon="send-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Payment captured"
+              value={
+                gift.paymentAmount
+                  ? `${gift.paymentAmount} ${(gift.paymentCurrency || "").toUpperCase()}${
+                      gift.paymentLast4
+                        ? ` · ${gift.paymentCardBrand || "Card"} ·••• ${gift.paymentLast4}`
+                        : ""
+                    }`
+                  : "—"
+              }
+              icon="card-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+            <DetailRow
+              label="Stripe payment intent"
+              value={gift.stripePaymentIntentId ?? "—"}
+              icon="cloud-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+          </View>
+        ) : null}
+
         <View style={[styles.section, { borderColor }]}>
           <StyledText variant="titleMedium" style={styles.sectionTitle}>
             Validity
@@ -219,6 +305,15 @@ export default function VoucherDetailScreen() {
             iconColor={iconColor}
             muted={textMuted}
           />
+          {gift ? (
+            <DetailRow
+              label="Chosen validity (purchase)"
+              value={`${gift.validityDays} days`}
+              icon="options-outline"
+              iconColor={iconColor}
+              muted={textMuted}
+            />
+          ) : null}
           <DetailRow
             label="Valid from"
             value={formatDetailTime(voucher.validFrom)}

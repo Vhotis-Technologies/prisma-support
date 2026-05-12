@@ -12,6 +12,7 @@ import customerApi from "@/app/store/api/customerApi";
 import activityApi from "@/app/store/api/activityApi";
 import ticketApi from "@/app/store/api/ticketApi";
 import voucherApi from "@/app/store/api/voucherApi";
+import giftVoucherApi from "@/app/store/api/giftVoucherApi";
 import accountingApi from "@/app/store/api/accountingApi";
 
 export const store = configureStore({
@@ -27,6 +28,7 @@ export const store = configureStore({
     [activityApi.reducerPath]: activityApi.reducer,
     [ticketApi.reducerPath]: ticketApi.reducer,
     [voucherApi.reducerPath]: voucherApi.reducer,
+    [giftVoucherApi.reducerPath]: giftVoucherApi.reducer,
     [accountingApi.reducerPath]: accountingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -40,6 +42,7 @@ export const store = configureStore({
       activityApi.middleware,
       ticketApi.middleware,
       voucherApi.middleware,
+      giftVoucherApi.middleware,
       accountingApi.middleware,
     ),
 });

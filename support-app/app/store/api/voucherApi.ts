@@ -22,6 +22,7 @@ export type UpdateVoucherBody = {
 
 function mapVoucher(row: Record<string, unknown>): VoucherDetails {
   return {
+    kind: "winner" as const,
     id: String(row.id),
     code: String(row.code ?? ""),
     assignedEmail: String(row.assignedEmail ?? ""),

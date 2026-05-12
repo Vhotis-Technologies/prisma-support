@@ -391,6 +391,47 @@ export default function BookingDetailsScreen() {
         ) : null}
       </Section>
 
+      <Section title="Customer review" icon="chatbox-ellipses-outline" borderColor={borderColor}>
+        {booking.is_reviewed ? (
+          <>
+            <DetailRow
+              label="Rating"
+              value={
+                booking.review_rating != null
+                  ? `${booking.review_rating} / 5`
+                  : "—"
+              }
+              muted={muted}
+            />
+            {booking.review_submitted_at ? (
+              <DetailRow
+                label="Submitted"
+                value={booking.review_submitted_at.replace("T", " ").slice(0, 19)}
+                muted={muted}
+              />
+            ) : null}
+            {booking.review_comment ? (
+              <>
+                <StyledText variant="labelMedium" color={muted} style={styles.blockLabel}>
+                  Comment
+                </StyledText>
+                <StyledText variant="bodyMedium" style={styles.block}>
+                  {booking.review_comment}
+                </StyledText>
+              </>
+            ) : (
+              <StyledText variant="bodyMedium" color={muted}>
+                No written comment with this review.
+              </StyledText>
+            )}
+          </>
+        ) : (
+          <StyledText variant="bodyMedium" color={muted}>
+            No review submitted yet.
+          </StyledText>
+        )}
+      </Section>
+
       <Section title="Add-ons" icon="add-circle-outline" borderColor={borderColor}>
         {booking.addons.length === 0 ? (
           <StyledText variant="bodyMedium" color={muted}>

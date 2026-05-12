@@ -122,6 +122,10 @@ export interface BookingDetails extends BookingItemProps {
   special_instructions: string;
   total_amount: number;
   booking_images?: BookingImageGroups;
+  is_reviewed?: boolean;
+  review_rating?: number | null;
+  review_comment?: string | null;
+  review_submitted_at?: string | null;
 }
 
 /** Props for the `BookingItem` list component (onPress is UI-only). */
