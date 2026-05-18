@@ -90,7 +90,7 @@ export default function AccountingScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large"  style={{ backgroundColor }}/>
       </View>
     );
   }

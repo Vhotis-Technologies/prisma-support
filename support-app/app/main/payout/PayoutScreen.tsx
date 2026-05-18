@@ -52,7 +52,10 @@ export default function PayoutScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "borders");
   const tint = useThemeColor({}, "tint");
-  const textMuted = useThemeColor({ light: "#757575", dark: "#9E9E9E" }, "text");
+  const textMuted = useThemeColor(
+    { light: "#757575", dark: "#9E9E9E" },
+    "text",
+  );
   const primary = useThemeColor({}, "primary");
 
   const partnerQuery = useGetPartnerPayoutQueueQuery(undefined, {
@@ -60,11 +63,13 @@ export default function PayoutScreen() {
     refetchOnMountOrArgChange: true,
   });
   const crewQuery = useGetCrewPayoutQueueQuery(undefined, {
-    skip: !isFocused || !access || activeTab !== "crew" || crewSubTab !== "queue",
+    skip:
+      !isFocused || !access || activeTab !== "crew" || crewSubTab !== "queue",
     refetchOnMountOrArgChange: true,
   });
   const crewUnpaidQuery = useGetCrewUnpaidEarningsQuery(undefined, {
-    skip: !isFocused || !access || activeTab !== "crew" || crewSubTab !== "unpaid",
+    skip:
+      !isFocused || !access || activeTab !== "crew" || crewSubTab !== "unpaid",
     refetchOnMountOrArgChange: true,
   });
 
@@ -72,18 +77,42 @@ export default function PayoutScreen() {
 
   const isLoading = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isLoading;
-    return crewSubTab === "unpaid" ? crewUnpaidQuery.isLoading : crewQuery.isLoading;
-  }, [activeTab, crewSubTab, crewQuery.isLoading, crewUnpaidQuery.isLoading, partnerQuery.isLoading]);
+    return crewSubTab === "unpaid"
+      ? crewUnpaidQuery.isLoading
+      : crewQuery.isLoading;
+  }, [
+    activeTab,
+    crewSubTab,
+    crewQuery.isLoading,
+    crewUnpaidQuery.isLoading,
+    partnerQuery.isLoading,
+  ]);
 
   const isFetching = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isFetching;
-    return crewSubTab === "unpaid" ? crewUnpaidQuery.isFetching : crewQuery.isFetching;
-  }, [activeTab, crewSubTab, crewQuery.isFetching, crewUnpaidQuery.isFetching, partnerQuery.isFetching]);
+    return crewSubTab === "unpaid"
+      ? crewUnpaidQuery.isFetching
+      : crewQuery.isFetching;
+  }, [
+    activeTab,
+    crewSubTab,
+    crewQuery.isFetching,
+    crewUnpaidQuery.isFetching,
+    partnerQuery.isFetching,
+  ]);
 
   const isError = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isError;
-    return crewSubTab === "unpaid" ? crewUnpaidQuery.isError : crewQuery.isError;
-  }, [activeTab, crewSubTab, crewQuery.isError, crewUnpaidQuery.isError, partnerQuery.isError]);
+    return crewSubTab === "unpaid"
+      ? crewUnpaidQuery.isError
+      : crewQuery.isError;
+  }, [
+    activeTab,
+    crewSubTab,
+    crewQuery.isError,
+    crewUnpaidQuery.isError,
+    partnerQuery.isError,
+  ]);
 
   const refetch = useCallback(() => {
     if (activeTab === "partner") return partnerQuery.refetch();
@@ -249,7 +278,15 @@ export default function PayoutScreen() {
         </StyledText>
       </View>
     ),
-    [activeTab, borderColor, headerCopy, queueHint, renderCrewSubTabs, textMuted, tint],
+    [
+      activeTab,
+      borderColor,
+      headerCopy,
+      queueHint,
+      renderCrewSubTabs,
+      textMuted,
+      tint,
+    ],
   );
 
   const emptyMessage = useMemo(() => {
@@ -305,7 +342,10 @@ export default function PayoutScreen() {
           ListEmptyComponent={empty}
           refreshing={isFetching && !isLoading}
           onRefresh={() => void refetch()}
-          contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         />
       ) : showCrewUnpaidList ? (
@@ -317,7 +357,10 @@ export default function PayoutScreen() {
           ListEmptyComponent={empty}
           refreshing={(isFetching && !isLoading) || isSubmitting}
           onRefresh={() => void refetch()}
-          contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         />
       ) : (
@@ -329,7 +372,10 @@ export default function PayoutScreen() {
           ListEmptyComponent={empty}
           refreshing={isFetching && !isLoading}
           onRefresh={() => void refetch()}
-          contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -341,8 +387,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loader: { marginTop: 24 },
   content: { paddingHorizontal: 8, paddingTop: 8 },
-  header: { marginBottom: 16, gap: 12 },
-  tabRow: { flexDirection: "row", gap: 8 },
+  header: { marginBottom: 16, gap: 12, width: "100%" },
+  tabRow: { flexDirection: "row", gap: 8, flex:1},
   tab: {
     paddingHorizontal: 14,
     paddingVertical: 8,
