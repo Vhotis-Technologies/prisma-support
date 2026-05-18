@@ -62,6 +62,7 @@ export interface MarkPartnerPayoutPaidArg {
   payout_request_id: string;
   admin_notes?: string;
   payment_reference?: string;
+  confirmed_amount?: number;
 }
 
 export interface MarkCrewPayoutPaidArg {
@@ -78,4 +79,84 @@ export interface PartnerPayoutItemProps {
 export interface CrewPayoutItemProps {
   item: CrewPayoutQueueItem;
   onPress?: (item: CrewPayoutQueueItem) => void;
+}
+
+/** Aggregated unpaid earnings for a single crew member. */
+export interface CrewUnpaidSummary {
+  crew_member_id: string;
+  crew_member_name: string;
+  crew_member_email: string;
+  unpaid_amount: number;
+  unpaid_job_count: number;
+  latest_earning_at: string;
+  latest_earning_at_display: string;
+}
+
+export interface CrewUnpaidSummaryResponse {
+  data?: { crew_unpaid_earnings?: CrewUnpaidSummary[] };
+}
+
+export interface CrewUnpaidEarning {
+  id: string;
+  job_id: string | null;
+  job_reference: string;
+  client_name: string;
+  service_type: string;
+  gross_amount: number;
+  net_amount: number;
+  total_active_hours: number;
+  total_inactive_hours: number;
+  created_at: string;
+  created_at_display: string;
+}
+
+export interface CrewUnpaidDetail {
+  crew_member_id: string;
+  crew_member_name: string;
+  crew_member_email: string;
+  unpaid_amount: number;
+  unpaid_job_count: number;
+  earnings: CrewUnpaidEarning[];
+}
+
+export interface CrewUnpaidDetailResponse {
+  data?: CrewUnpaidDetail;
+}
+
+export interface CreateCrewPayoutArg {
+  crew_member_id: string;
+  earning_ids?: string[];
+  admin_notes?: string;
+}
+
+export interface CreateCrewPayoutResponse {
+  data?: {
+    message?: string;
+    payout?: CrewPayoutQueueItem;
+  };
+}
+
+/** Live partner ledger balances used by support before marking a request paid. */
+export interface PartnerBalance {
+  partner_id: string;
+  partner_name: string;
+  approved_balance: number;
+  pending_balance: number;
+  total_paid: number;
+  amount_requested: number | null;
+  amount_matches_balance: boolean;
+  bank_account: {
+    has_bank_account: boolean;
+    account_holder_name?: string;
+    iban_masked?: string;
+  };
+}
+
+export interface PartnerBalanceResponse {
+  data?: PartnerBalance;
+}
+
+export interface CrewUnpaidSummaryItemProps {
+  item: CrewUnpaidSummary;
+  onPress?: (item: CrewUnpaidSummary) => void;
 }

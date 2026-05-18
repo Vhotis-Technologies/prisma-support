@@ -1,9 +1,17 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
+  CreateCrewPayoutArg,
+  CreateCrewPayoutResponse,
   CrewPayoutQueueItem,
   CrewPayoutQueueResponse,
+  CrewUnpaidDetail,
+  CrewUnpaidDetailResponse,
+  CrewUnpaidSummary,
+  CrewUnpaidSummaryResponse,
   MarkCrewPayoutPaidArg,
   MarkPartnerPayoutPaidArg,
+  PartnerBalance,
+  PartnerBalanceResponse,
   PartnerPayoutQueueItem,
   PartnerPayoutQueueResponse,
 } from "@/app/interfaces/PayoutInterface";
@@ -14,7 +22,12 @@ const CACHE_SEC = 120;
 const payoutApi = createApi({
   reducerPath: "payoutApi",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["PartnerPayoutQueue", "CrewPayoutQueue"],
+  tagTypes: [
+    "PartnerPayoutQueue",
+    "CrewPayoutQueue",
+    "CrewUnpaidEarnings",
+    "PartnerBalance",
+  ],
   refetchOnReconnect: true,
   keepUnusedDataFor: CACHE_SEC,
   endpoints: (builder) => ({
@@ -40,6 +53,40 @@ const payoutApi = createApi({
       providesTags: [{ type: "CrewPayoutQueue", id: "LIST" }],
     }),
 
+    getPartnerBalance: builder.query<PartnerBalance | null, string>({
+      query: (payoutRequestId) => ({
+        url: "/api/v1/payouts/get_partner_balance/",
+        method: "GET",
+        params: { payout_request_id: payoutRequestId },
+      }),
+      transformResponse: (response: PartnerBalanceResponse) =>
+        response.data ?? null,
+      providesTags: (_result, _err, id) => [{ type: "PartnerBalance", id }],
+    }),
+
+    getCrewUnpaidEarnings: builder.query<CrewUnpaidSummary[], void>({
+      query: () => ({
+        url: "/api/v1/payouts/get_crew_unpaid_earnings/",
+        method: "GET",
+      }),
+      transformResponse: (response: CrewUnpaidSummaryResponse) =>
+        response.data?.crew_unpaid_earnings ?? [],
+      providesTags: [{ type: "CrewUnpaidEarnings", id: "LIST" }],
+    }),
+
+    getCrewUnpaidEarningsDetail: builder.query<CrewUnpaidDetail | null, string>({
+      query: (crewMemberId) => ({
+        url: "/api/v1/payouts/get_crew_unpaid_earnings_detail/",
+        method: "GET",
+        params: { crew_member_id: crewMemberId },
+      }),
+      transformResponse: (response: CrewUnpaidDetailResponse) =>
+        response.data ?? null,
+      providesTags: (_result, _err, id) => [
+        { type: "CrewUnpaidEarnings", id: id ?? "DETAIL" },
+      ],
+    }),
+
     markPartnerPayoutPaid: builder.mutation<
       { message?: string },
       MarkPartnerPayoutPaidArg
@@ -49,7 +96,10 @@ const payoutApi = createApi({
         method: "POST",
         data: body,
       }),
-      invalidatesTags: [{ type: "PartnerPayoutQueue", id: "LIST" }],
+      invalidatesTags: (_result, _err, arg) => [
+        { type: "PartnerPayoutQueue", id: "LIST" },
+        { type: "PartnerBalance", id: arg.payout_request_id },
+      ],
     }),
 
     markCrewPayoutPaid: builder.mutation<{ message?: string }, MarkCrewPayoutPaidArg>({
@@ -58,7 +108,23 @@ const payoutApi = createApi({
         method: "POST",
         data: body,
       }),
-      invalidatesTags: [{ type: "CrewPayoutQueue", id: "LIST" }],
+      invalidatesTags: [
+        { type: "CrewPayoutQueue", id: "LIST" },
+        { type: "CrewUnpaidEarnings", id: "LIST" },
+      ],
+    }),
+
+    createCrewPayout: builder.mutation<CreateCrewPayoutResponse, CreateCrewPayoutArg>({
+      query: (body) => ({
+        url: "/api/v1/payouts/create_crew_payout/",
+        method: "POST",
+        data: body,
+      }),
+      invalidatesTags: (_result, _err, arg) => [
+        { type: "CrewPayoutQueue", id: "LIST" },
+        { type: "CrewUnpaidEarnings", id: "LIST" },
+        { type: "CrewUnpaidEarnings", id: arg.crew_member_id },
+      ],
     }),
   }),
 });
@@ -66,8 +132,12 @@ const payoutApi = createApi({
 export const {
   useGetPartnerPayoutQueueQuery,
   useGetCrewPayoutQueueQuery,
+  useGetPartnerBalanceQuery,
+  useGetCrewUnpaidEarningsQuery,
+  useGetCrewUnpaidEarningsDetailQuery,
   useMarkPartnerPayoutPaidMutation,
   useMarkCrewPayoutPaidMutation,
+  useCreateCrewPayoutMutation,
 } = payoutApi;
 
 export default payoutApi;
