@@ -45,5 +45,4 @@ env
 redis/data/dump.rdb
 
 prisma_client/node_modules
-support-app/google-services.json
 support-app/prisma-support-f1fb0-firebase-adminsdk-fbsvc-ccf1ad777b.json
