@@ -29,7 +29,9 @@ DETAILER_GET_ACTIONS = frozenset(
         "get_crew_unpaid_earnings_detail",
     }
 )
-DETAILER_POST_ACTIONS = frozenset({"mark_crew_payout_paid", "create_crew_payout"})
+DETAILER_POST_ACTIONS = frozenset(
+    {"mark_crew_payout_paid", "create_crew_payout", "record_crew_payment_made"}
+)
 
 
 class SupportPayoutsProxyView(APIView):

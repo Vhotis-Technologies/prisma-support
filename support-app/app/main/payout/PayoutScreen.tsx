@@ -14,7 +14,6 @@ import CrewPayoutItem from "@/app/components/payout/CrewPayoutItem";
 import CrewUnpaidItem from "@/app/components/payout/CrewUnpaidItem";
 import PartnerPayoutItem from "@/app/components/payout/PartnerPayoutItem";
 import StyledText from "@/app/components/helpers/StyledText";
-import { usePayoutFlow } from "@/app/app_hooks/usePayoutFlow";
 import type {
   CrewPayoutQueueItem,
   CrewUnpaidSummary,
@@ -72,8 +71,6 @@ export default function PayoutScreen() {
       !isFocused || !access || activeTab !== "crew" || crewSubTab !== "unpaid",
     refetchOnMountOrArgChange: true,
   });
-
-  const { requestCreateCrewPayout, isSubmitting } = usePayoutFlow();
 
   const isLoading = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isLoading;
@@ -170,11 +167,11 @@ export default function PayoutScreen() {
 
   const onUnpaidPress = useCallback(
     (item: CrewUnpaidSummary) => {
-      requestCreateCrewPayout(item, () => {
-        setCrewSubTab("queue");
-      });
+      router.push(
+        `/main/payout/CrewUnpaidDetailScreen?crewMemberId=${encodeURIComponent(item.crew_member_id)}` as Href,
+      );
     },
-    [requestCreateCrewPayout],
+    [router],
   );
 
   const renderPartner: ListRenderItem<PartnerPayoutQueueItem> = useCallback(
@@ -197,7 +194,7 @@ export default function PayoutScreen() {
       return "Partner commission payout requests from the client app. The server re-validates the amount against the partner's approved balance before completing the transfer.";
     }
     if (crewSubTab === "unpaid") {
-      return "Crew members can't request payouts — support creates them here. Tap a crew member to bundle their unpaid earnings into a new payout, then mark it paid after the bank transfer.";
+      return "Crew members can't request payouts — support pays them directly. Tap a crew member to see the job breakdown and bank details, then record payment after the transfer.";
     }
     return "Crew payouts you've created. Open one to record the bank reference and mark it paid; the linked earnings are released to the crew member.";
   }, [activeTab, crewSubTab]);
@@ -355,7 +352,7 @@ export default function PayoutScreen() {
           renderItem={renderUnpaid}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={empty}
-          refreshing={(isFetching && !isLoading) || isSubmitting}
+          refreshing={isFetching && !isLoading}
           onRefresh={() => void refetch()}
           contentContainerStyle={[
             styles.content,

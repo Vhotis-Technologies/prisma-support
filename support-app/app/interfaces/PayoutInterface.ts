@@ -110,6 +110,15 @@ export interface CrewUnpaidEarning {
   created_at_display: string;
 }
 
+export interface CrewBankAccount {
+  has_bank_account: boolean;
+  account_name: string;
+  bank_name: string;
+  iban: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
+}
+
 export interface CrewUnpaidDetail {
   crew_member_id: string;
   crew_member_name: string;
@@ -117,6 +126,7 @@ export interface CrewUnpaidDetail {
   unpaid_amount: number;
   unpaid_job_count: number;
   earnings: CrewUnpaidEarning[];
+  bank_account?: CrewBankAccount;
 }
 
 export interface CrewUnpaidDetailResponse {
@@ -133,6 +143,21 @@ export interface CreateCrewPayoutResponse {
   data?: {
     message?: string;
     payout?: CrewPayoutQueueItem;
+  };
+}
+
+export interface RecordCrewPaymentMadeArg {
+  crew_member_id: string;
+  earning_ids?: string[];
+  admin_notes?: string;
+  payment_reference?: string;
+}
+
+export interface RecordCrewPaymentMadeResponse {
+  data?: {
+    message?: string;
+    payout?: CrewPayoutQueueItem;
+    earnings_marked_paid?: number;
   };
 }
 

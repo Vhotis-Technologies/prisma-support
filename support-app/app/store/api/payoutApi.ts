@@ -2,6 +2,8 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   CreateCrewPayoutArg,
   CreateCrewPayoutResponse,
+  RecordCrewPaymentMadeArg,
+  RecordCrewPaymentMadeResponse,
   CrewPayoutQueueItem,
   CrewPayoutQueueResponse,
   CrewUnpaidDetail,
@@ -126,6 +128,22 @@ const payoutApi = createApi({
         { type: "CrewUnpaidEarnings", id: arg.crew_member_id },
       ],
     }),
+
+    recordCrewPaymentMade: builder.mutation<
+      RecordCrewPaymentMadeResponse,
+      RecordCrewPaymentMadeArg
+    >({
+      query: (body) => ({
+        url: "/api/v1/payouts/record_crew_payment_made/",
+        method: "POST",
+        data: body,
+      }),
+      invalidatesTags: (_result, _err, arg) => [
+        { type: "CrewPayoutQueue", id: "LIST" },
+        { type: "CrewUnpaidEarnings", id: "LIST" },
+        { type: "CrewUnpaidEarnings", id: arg.crew_member_id },
+      ],
+    }),
   }),
 });
 
@@ -138,6 +156,7 @@ export const {
   useMarkPartnerPayoutPaidMutation,
   useMarkCrewPayoutPaidMutation,
   useCreateCrewPayoutMutation,
+  useRecordCrewPaymentMadeMutation,
 } = payoutApi;
 
 export default payoutApi;

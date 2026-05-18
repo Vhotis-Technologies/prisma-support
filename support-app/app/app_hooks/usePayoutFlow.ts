@@ -1,18 +1,18 @@
 /**
- * Payout detail screen: mark partner or crew payout as paid with confirm dialog.
- * Also exposes a helper for support to create a new crew payout from unpaid earnings.
+ * Payout flows: mark partner/crew queue payouts as paid, and record crew bank
+ * transfers from the unpaid-earnings detail screen.
  */
 import { useCallback, useState } from "react";
 import { useAlertContext } from "@/app/contexts/AlertContext";
 import type {
   CrewPayoutQueueItem,
-  CrewUnpaidSummary,
+  CrewUnpaidDetail,
   PartnerPayoutQueueItem,
 } from "@/app/interfaces/PayoutInterface";
 import {
-  useCreateCrewPayoutMutation,
   useMarkCrewPayoutPaidMutation,
   useMarkPartnerPayoutPaidMutation,
+  useRecordCrewPaymentMadeMutation,
 } from "@/app/store/api/payoutApi";
 
 function getErrMsg(e: unknown): string {
@@ -30,7 +30,8 @@ export function usePayoutFlow() {
   const { setAlertConfig, setIsVisible } = useAlertContext();
   const [markPartnerPaid, { isLoading: partnerLoading }] = useMarkPartnerPayoutPaidMutation();
   const [markCrewPaid, { isLoading: crewLoading }] = useMarkCrewPayoutPaidMutation();
-  const [createCrewPayout, { isLoading: creatingCrewPayout }] = useCreateCrewPayoutMutation();
+  const [recordCrewPayment, { isLoading: recordingCrewPayment }] =
+    useRecordCrewPaymentMadeMutation();
   const [paymentReference, setPaymentReference] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
 
@@ -152,44 +153,41 @@ export function usePayoutFlow() {
     ],
   );
 
-  const requestCreateCrewPayout = useCallback(
-    (item: CrewUnpaidSummary, onSuccess?: () => void) => {
-      const amount = item.unpaid_amount.toFixed(2);
+  const requestRecordCrewPaymentMade = useCallback(
+    (detail: CrewUnpaidDetail, onSuccess?: () => void) => {
+      const amount = detail.unpaid_amount.toFixed(2);
+      const bank = detail.bank_account;
+      const bankLine = bank?.has_bank_account
+        ? ` to ${bank.account_name} (${bank.iban})`
+        : "";
       setAlertConfig({
         isVisible: true,
-        title: "Create payout for crew member?",
+        title: "Confirm payment made?",
         message:
-          `Bundle ${item.unpaid_job_count} unpaid job` +
-          `${item.unpaid_job_count === 1 ? "" : "s"}` +
-          ` (£${amount}) for ${item.crew_member_name} into a new payout. ` +
-          `It will appear in the Crew tab as pending until you mark it paid.`,
+          `Record £${amount} for ${detail.unpaid_job_count} job` +
+          `${detail.unpaid_job_count === 1 ? "" : "s"} paid to ` +
+          `${detail.crew_member_name}${bankLine}. ` +
+          `This updates payout history in the crew app.`,
         type: "warning",
-        confirmLabel: "Create payout",
+        confirmLabel: "Payment made",
         onClose: () => setIsVisible(false),
         onConfirm: () => {
           void (async () => {
             try {
-              await createCrewPayout({
-                crew_member_id: item.crew_member_id,
+              await recordCrewPayment({
+                crew_member_id: detail.crew_member_id,
+                payment_reference: paymentReference.trim() || undefined,
                 admin_notes: adminNotes.trim() || undefined,
               }).unwrap();
+              setPaymentReference("");
               setAdminNotes("");
-              setAlertConfig({
-                isVisible: true,
-                title: "Payout created",
-                message:
-                  `Payout of £${amount} for ${item.crew_member_name} is now pending. ` +
-                  `Open it from the Crew tab and mark it paid after the bank transfer.`,
-                type: "success",
-                confirmLabel: "OK",
-                onConfirm: () => {
-                  setIsVisible(false);
-                  onSuccess?.();
-                },
-              });
+              showSuccess(
+                `Payment of £${amount} for ${detail.crew_member_name} has been recorded.`,
+                onSuccess,
+              );
             } catch (e) {
               setIsVisible(false);
-              showError("Could not create payout", getErrMsg(e));
+              showError("Could not record payment", getErrMsg(e));
             }
           })();
         },
@@ -197,11 +195,12 @@ export function usePayoutFlow() {
     },
     [
       adminNotes,
-      createCrewPayout,
-      setAdminNotes,
+      paymentReference,
+      recordCrewPayment,
       setAlertConfig,
       setIsVisible,
       showError,
+      showSuccess,
     ],
   );
 
@@ -210,9 +209,9 @@ export function usePayoutFlow() {
     setPaymentReference,
     adminNotes,
     setAdminNotes,
-    isSubmitting: partnerLoading || crewLoading || creatingCrewPayout,
+    isSubmitting: partnerLoading || crewLoading || recordingCrewPayment,
     requestMarkPartnerPaid,
     requestMarkCrewPaid,
-    requestCreateCrewPayout,
+    requestRecordCrewPaymentMade,
   };
 }
