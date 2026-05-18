@@ -1,5 +1,5 @@
-  /**
- * App config from Expo extra: Stripe key, API URLs (detailer, customer, websocket), Google API keys. Fallbacks for dev.
+/**
+ * App config from Expo extra: API URLs (detailer, customer, websocket), Google API keys. Fallbacks for dev.
  */
 import Constants from "expo-constants";
 
@@ -19,25 +19,6 @@ export const APP_ENV =
     (process as { env?: { EXPO_PUBLIC_APP_ENV?: string } }).env
       ?.EXPO_PUBLIC_APP_ENV) ||
   "development";
-
-export function getStripePublishableKey(): string | undefined {
-  const stripe = config.stripe as
-    | { publishableKey?: string; productionPublishableKey?: string }
-    | undefined;
-  if (!stripe) return undefined;
-  if (APP_ENV === "production") {
-    return stripe.productionPublishableKey || stripe.publishableKey;
-  }
-  return stripe.publishableKey;
-}
-
-export const STRIPE_PUBLISHABLE_KEY = getStripePublishableKey();
-
-// Stripe Configuration (raw keys; prefer STRIPE_PUBLISHABLE_KEY)
-export const STRIPE_CONFIG = {
-  publishableKey: config.stripe?.publishableKey,
-  productionPublishableKey: config.stripe?.productionPublishableKey,
-};
 
 // API Configuration with fallbacks for testing
 // support_app_url: Django support API (see app.json extra). Android emulator: http://10.0.2.2:8000
