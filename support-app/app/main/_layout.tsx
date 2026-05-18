@@ -97,6 +97,10 @@ const MainLayout = () => {
             options={{ title: "Voucher", headerTitle: "Voucher" }}
           />
           <Drawer.Screen
+            name="payout"
+            options={{ title: "Payouts", headerTitle: "Payouts" }}
+          />
+          <Drawer.Screen
             name="accounting"
             options={{ title: "Accounting", headerTitle: "Accounting" }}
           />

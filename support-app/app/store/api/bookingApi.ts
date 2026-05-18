@@ -2,6 +2,9 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   BookingDetails,
   BulkOrderDetailResponse,
+  ReassignmentAuditEntry,
+  ReassignmentCandidatesPayload,
+  ReassignmentReasonCode,
   SupportBookingListRow,
 } from "@/app/interfaces/BookingInterface";
 import axiosBaseQuery from "../baseQuery";
@@ -19,6 +22,43 @@ export type CancelBookingResponse = {
   booking_status: string;
   refund: Record<string, unknown>;
   hours_until_appointment: number;
+};
+
+export type ReassignBookingRequest = {
+  bookingId: string;
+  new_detailer_ids: string[];
+  reason_code: ReassignmentReasonCode;
+  reason_notes?: string;
+  support_user_id?: string;
+  support_user_email?: string;
+};
+
+export type ReassignBulkOrderRequest = {
+  bulkOrderId: string;
+  new_detailer_ids: string[];
+  reason_code: ReassignmentReasonCode;
+  reason_notes?: string;
+  support_user_id?: string;
+  support_user_email?: string;
+};
+
+export type ReassignmentResponse = {
+  message?: string;
+  data?: {
+    booking_reference?: string;
+    is_bulk?: boolean;
+    is_express?: boolean;
+    old_detailer_ids?: string[];
+    assigned_detailers?: Array<{
+      id: string | null;
+      name: string;
+      phone: string;
+      rating: number;
+      image: string | null;
+    }>;
+    job_count?: number;
+  };
+  error?: string;
 };
 
 const bookingApi = createApi({
@@ -190,6 +230,66 @@ const bookingApi = createApi({
         { type: "SupportBooking", id: `bulk-${bulkOrderId}` },
       ],
     }),
+
+    getReassignmentCandidates: builder.query<ReassignmentCandidatesPayload, string>({
+      query: (bookingId) => ({
+        url: "/api/v1/bookings/get_reassignment_candidates/",
+        method: "GET",
+        params: { booking_id: bookingId },
+      }),
+      transformResponse: (response: { data?: ReassignmentCandidatesPayload }) => {
+        const d = response?.data;
+        if (!d) throw new Error("Missing reassignment candidates in response");
+        return d;
+      },
+    }),
+
+    getBulkReassignmentCandidates: builder.query<ReassignmentCandidatesPayload, string>({
+      query: (bulkOrderId) => ({
+        url: "/api/v1/bookings/get_bulk_reassignment_candidates/",
+        method: "GET",
+        params: { bulk_order_id: bulkOrderId },
+      }),
+      transformResponse: (response: { data?: ReassignmentCandidatesPayload }) => {
+        const d = response?.data;
+        if (!d) throw new Error("Missing bulk reassignment candidates in response");
+        return d;
+      },
+    }),
+
+    getReassignmentHistory: builder.query<ReassignmentAuditEntry[], string>({
+      query: (bookingReference) => ({
+        url: "/api/v1/bookings/get_reassignment_history/",
+        method: "GET",
+        params: { booking_reference: bookingReference },
+      }),
+      transformResponse: (response: { data?: { history?: ReassignmentAuditEntry[] } }) =>
+        response?.data?.history ?? [],
+    }),
+
+    reassignSupportBooking: builder.mutation<ReassignmentResponse, ReassignBookingRequest>({
+      query: ({ bookingId, ...rest }) => ({
+        url: "/api/v1/bookings/reassign_booking/",
+        method: "PATCH",
+        data: { booking_id: bookingId, ...rest },
+      }),
+      invalidatesTags: (_result, _error, { bookingId }) => [
+        { type: "SupportBookings", id: "LIST" },
+        { type: "SupportBooking", id: bookingId },
+      ],
+    }),
+
+    reassignSupportBulkOrder: builder.mutation<ReassignmentResponse, ReassignBulkOrderRequest>({
+      query: ({ bulkOrderId, ...rest }) => ({
+        url: "/api/v1/bookings/reassign_bulk_order/",
+        method: "PATCH",
+        data: { bulk_order_id: bulkOrderId, ...rest },
+      }),
+      invalidatesTags: (_result, _error, { bulkOrderId }) => [
+        { type: "SupportBookings", id: "LIST" },
+        { type: "SupportBooking", id: `bulk-${bulkOrderId}` },
+      ],
+    }),
   }),
 });
 
@@ -204,5 +304,10 @@ export const {
   useRescheduleIntentMutation,
   useRescheduleSupportBookingMutation,
   useRescheduleSupportBulkOrderMutation,
+  useLazyGetReassignmentCandidatesQuery,
+  useLazyGetBulkReassignmentCandidatesQuery,
+  useGetReassignmentHistoryQuery,
+  useReassignSupportBookingMutation,
+  useReassignSupportBulkOrderMutation,
 } = bookingApi;
 export default bookingApi;

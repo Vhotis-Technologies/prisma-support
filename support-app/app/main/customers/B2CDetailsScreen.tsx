@@ -15,6 +15,8 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
 import type { FleetSubscription } from "@/app/interfaces/CustomerInterface";
 import StyledButton from "@/app/components/helpers/StyledButton";
+import LoyaltyCard from "@/app/components/customers/LoyaltyCard";
+import ComplimentaryWashesCard from "@/app/components/customers/ComplimentaryWashesCard";
 
 export default function B2CDetailsScreen() {
   const router = useRouter();
@@ -147,9 +149,6 @@ export default function B2CDetailsScreen() {
         <StyledText variant="headlineSmall" style={styles.name}>
           {customer.name}
         </StyledText>
-        <StyledText variant="bodyMedium" color={muted}>
-          Tier: {customer.loyalty_tier}
-        </StyledText>
         <View style={styles.metaRow}>
           <View style={styles.meta}>
             <StyledText variant="labelSmall" color={muted}>
@@ -165,6 +164,9 @@ export default function B2CDetailsScreen() {
           </View>
         </View>
       </View>
+
+      <ComplimentaryWashesCard complimentary={customer.subscription_complimentary} />
+      <LoyaltyCard loyalty={customer.loyalty} />
 
       <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
         <View style={styles.subscriptionHeader}>

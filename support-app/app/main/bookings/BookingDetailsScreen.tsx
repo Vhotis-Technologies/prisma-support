@@ -19,10 +19,12 @@ import type {
   PaymentStatus,
 } from "@/app/interfaces/BookingInterface";
 import BookingImageGalleryTab from "@/app/components/bookings/BookingImageGalleryTab";
+import ReassignCrewModal from "@/app/components/bookings/ReassignCrewModal";
 import ModalServices from "@/app/components/helpers/ModalServices";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
 import { useBookingFlow } from "@/app/app_hooks/useBookingFlow";
+import { useReassignFlow } from "@/app/app_hooks/useReassignFlow";
 
 function statusLabel(status: BookingStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
@@ -95,6 +97,13 @@ export default function BookingDetailsScreen() {
   const tint = useThemeColor({}, "tint");
 
   const flow = useBookingFlow(bookingId);
+  const reassignFlow = useReassignFlow({
+    kind: "appointment",
+    targetId: bookingId,
+    onSuccess: () => {
+      void flow.refetch();
+    },
+  });
   const {
     booking,
     isLoading,
@@ -522,6 +531,27 @@ export default function BookingDetailsScreen() {
             </View>
           ))
         )}
+        {canModify ? (
+          <Pressable
+            onPress={() => void reassignFlow.open()}
+            disabled={reassignFlow.isLoading}
+            style={({ pressed }) => [
+              styles.reassignBtn,
+              {
+                borderColor: primary,
+                opacity: pressed ? 0.85 : reassignFlow.isLoading ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="swap-horizontal-outline" size={18} color={primary} />
+            <StyledText
+              variant="labelLarge"
+              style={{ color: primary, fontFamily: "BarlowMedium" }}
+            >
+              Reassign crew
+            </StyledText>
+          </Pressable>
+        ) : null}
       </Section>
 
       <Section title="Special instructions" icon="document-text-outline" borderColor={borderColor}>
@@ -715,6 +745,8 @@ export default function BookingDetailsScreen() {
         </View>
       }
     />
+
+    <ReassignCrewModal flow={reassignFlow} />
     </>
   );
 }
@@ -952,6 +984,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 2,
+  },
+  reassignBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
   },
   singleActionWrap: {
     gap: 10,

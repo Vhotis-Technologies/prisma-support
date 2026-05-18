@@ -33,6 +33,29 @@ export interface B2CListItem extends CustomerBase {
   subscription: FleetSubscription;
 }
 
+export type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
+
+export interface LoyaltyProgressSnapshot {
+  is_b2c: boolean;
+  current_tier: LoyaltyTier | null;
+  completed_bookings: number;
+  next_tier: LoyaltyTier | null;
+  current_threshold: number;
+  next_threshold: number | null;
+  washes_to_next: number;
+  tier_thresholds: Record<LoyaltyTier, number>;
+  benefits: { discount: number; free_service: string[] };
+}
+
+export interface SubscriptionComplimentarySnapshot {
+  eligible_subscription: boolean;
+  remaining_subscription: number;
+  max_subscription: number;
+  period_start: string | null;
+  period_end: string | null;
+  period_label: string;
+}
+
 export interface B2CDetails extends B2CListItem {
   address: CustomerAddress;
   no_of_vehicles: number;
@@ -43,6 +66,8 @@ export interface B2CDetails extends B2CListItem {
   cancelled_bookings: number;
   preferred_services: string[];
   notes?: string;
+  loyalty?: LoyaltyProgressSnapshot;
+  subscription_complimentary?: SubscriptionComplimentarySnapshot;
 }
 
 export interface FleetListItem extends CustomerBase {
@@ -144,6 +169,28 @@ export interface PartnerReferredVehicleEntry {
   vehicle: Vehicle;
 }
 
+/** Bank account summary for partner payout display. */
+export interface PartnerBankAccountSummary {
+  has_bank_account: boolean;
+  account_holder_name?: string;
+  iban_masked?: string;
+}
+
+/** Partner payout request status. */
+export type PartnerPayoutStatus = "pending" | "processing" | "paid" | "cancelled";
+
+/** Partner payout request row for support display. */
+export interface PartnerPayoutRequest {
+  id: string;
+  amount_requested: number;
+  status: PartnerPayoutStatus;
+  requested_at: string;
+  requested_at_display: string;
+  paid_at: string | null;
+  paid_at_display: string;
+  admin_notes: string;
+}
+
 export interface PartnerDetails extends PartnerListItem {
   /** Django Auth `User` id for the partner login; used for support vehicle removal on this account. */
   user_id?: string;
@@ -164,6 +211,12 @@ export interface PartnerDetails extends PartnerListItem {
   commission_total_earned: number;
   commission_pending: number;
   commission_paid: number;
+  /** Bank account summary for payout display. */
+  bank_account_summary?: PartnerBankAccountSummary;
+  /** Recent payout requests. */
+  payout_requests?: PartnerPayoutRequest[];
+  /** Total amount of pending/processing payout requests. */
+  open_payout_total?: number;
 }
 
 /** Row union returned by support `get_customers_list` (after parsing `type`). */

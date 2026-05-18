@@ -14,6 +14,7 @@ import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BookingItem from "@/app/components/bookings/BookingItem";
+import ReassignCrewModal from "@/app/components/bookings/ReassignCrewModal";
 import StyledText from "@/app/components/helpers/StyledText";
 import type {
   AppointmentListItem,
@@ -25,6 +26,7 @@ import type {
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
 import { useBulkOrderSupportFlow } from "@/app/app_hooks/useBulkOrderSupportFlow";
+import { useReassignFlow } from "@/app/app_hooks/useReassignFlow";
 
 function paymentLabel(raw: string): string {
   if (!raw) return "";
@@ -65,8 +67,10 @@ type HeaderProps = {
   tint: string;
   canModify: boolean;
   cancelLoading: boolean;
+  reassignBusy: boolean;
   onReschedule: () => void;
   onCancelBulk: () => void;
+  onReassignCrew: () => void;
 };
 
 function ListHeader({
@@ -82,8 +86,10 @@ function ListHeader({
   tint,
   canModify,
   cancelLoading,
+  reassignBusy,
   onReschedule,
   onCancelBulk,
+  onReassignCrew,
 }: HeaderProps) {
   const payTint =
     pay.payment_status === "paid"
@@ -168,6 +174,19 @@ function ListHeader({
               </StyledText>
             </Pressable>
             <Pressable
+              onPress={onReassignCrew}
+              disabled={reassignBusy}
+              style={({ pressed }) => [
+                styles.bulkActionPrimary,
+                { borderColor: primary, opacity: pressed ? 0.85 : reassignBusy ? 0.6 : 1 },
+              ]}
+            >
+              <Ionicons name="swap-horizontal-outline" size={20} color={primary} />
+              <StyledText variant="labelLarge" style={{ color: primary, fontFamily: "BarlowMedium" }}>
+                Reassign crew
+              </StyledText>
+            </Pressable>
+            <Pressable
               onPress={onCancelBulk}
               disabled={cancelLoading}
               style={({ pressed }) => [
@@ -247,6 +266,14 @@ export default function BulkOrderDetailsScreen() {
     requestCancelBulkOrder,
   } = flow;
 
+  const reassignFlow = useReassignFlow({
+    kind: "bulk_order",
+    targetId: bulkOrderId,
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
   const listRows = useMemo(
     () => (data?.appointments?.length ? toListRows(data.appointments) : []),
     [data?.appointments]
@@ -286,8 +313,10 @@ export default function BulkOrderDetailsScreen() {
         tint={tint}
         canModify={canModify}
         cancelLoading={cancelLoading}
+        reassignBusy={reassignFlow.isLoading || reassignFlow.isSubmitting}
         onReschedule={openReschedule}
         onCancelBulk={requestCancelBulkOrder}
+        onReassignCrew={() => void reassignFlow.open()}
       />
     );
   }, [
@@ -304,6 +333,7 @@ export default function BulkOrderDetailsScreen() {
     cancelLoading,
     openReschedule,
     requestCancelBulkOrder,
+    reassignFlow,
   ]);
 
   if (!bulkOrderId) {
@@ -470,6 +500,8 @@ export default function BulkOrderDetailsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ReassignCrewModal flow={reassignFlow} />
     </View>
   );
 }

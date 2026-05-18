@@ -64,6 +64,12 @@ const PRIMARY_ITEMS: NavItem[] = [
     route: "voucher",
   },
   {
+    key: "payout",
+    label: "Payouts",
+    icon: "cash-outline",
+    route: "payout",
+  },
+  {
     key: "accounting",
     label: "Accounting",
     icon: "calculator-outline",
@@ -159,6 +165,12 @@ function DrawerComponent(props: DrawerContentComponentProps) {
           activeRoute === "voucher" ||
           activeRoute === "VoucherScreen" ||
           activeRoute === "VoucherDetailScreen"
+        );
+      case "payout":
+        return (
+          activeRoute === "payout" ||
+          activeRoute === "PayoutScreen" ||
+          activeRoute === "PayoutDetailScreen"
         );
       case "accounting":
         return (

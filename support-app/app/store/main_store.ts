@@ -14,6 +14,7 @@ import ticketApi from "@/app/store/api/ticketApi";
 import voucherApi from "@/app/store/api/voucherApi";
 import giftVoucherApi from "@/app/store/api/giftVoucherApi";
 import accountingApi from "@/app/store/api/accountingApi";
+import payoutApi from "@/app/store/api/payoutApi";
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +31,7 @@ export const store = configureStore({
     [voucherApi.reducerPath]: voucherApi.reducer,
     [giftVoucherApi.reducerPath]: giftVoucherApi.reducer,
     [accountingApi.reducerPath]: accountingApi.reducer,
+    [payoutApi.reducerPath]: payoutApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -44,6 +46,7 @@ export const store = configureStore({
       voucherApi.middleware,
       giftVoucherApi.middleware,
       accountingApi.middleware,
+      payoutApi.middleware,
     ),
 });
 

@@ -133,3 +133,50 @@ export interface BookingItemComponentProps {
   booking: SupportBookingListRow;
   onPress?: (booking: SupportBookingListRow) => void;
 }
+
+/** Reason the support team picked to justify a crew reassignment. */
+export type ReassignmentReasonCode =
+  | "illness"
+  | "emergency"
+  | "vehicle_issue"
+  | "no_show"
+  | "schedule_conflict"
+  | "other";
+
+/** Detailer surfaced as a swap candidate from the detailer support API. */
+export interface ReassignmentCandidate {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  rating: number;
+  image: string | null;
+}
+
+/** Response payload from `get_reassignment_candidates`. */
+export interface ReassignmentCandidatesPayload {
+  booking_reference: string;
+  is_bulk: boolean;
+  is_express: boolean;
+  job_count: number;
+  required_count: number;
+  current_detailer_ids: string[];
+  candidates: ReassignmentCandidate[];
+}
+
+/** Single audit row for the reassignment history list. */
+export interface ReassignmentAuditEntry {
+  id: string;
+  booking_reference: string;
+  is_bulk: boolean;
+  is_express: boolean;
+  job_count: number;
+  old_detailer_ids: string[];
+  new_detailer_ids: string[];
+  reason_code: ReassignmentReasonCode;
+  reason_notes: string;
+  support_user_id: string;
+  support_user_email: string;
+  previous_status: string;
+  created_at: string;
+}
