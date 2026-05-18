@@ -1,10 +1,5 @@
 """
-HTTP proxy: support-app → **client** Prisma API (bookings domain).
-
-Authenticated support staff hit this Django app; each action is forwarded to
-``{CLIENT_API_URL}/api/v1/support/bookings/{action}/`` with the same
-``X-Support-Internal-Key`` used on the client. Keeps JWT/session logic in one place
-(mobile) while business rules stay on the client monolith.
+HTTP proxy: support-app → client Prisma ``support/gift-vouchers/{action}/``.
 """
 import logging
 
@@ -17,41 +12,16 @@ from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
-GET_ACTIONS = frozenset(
-    {
-        "get_bookings_list",
-        "get_booking_detail",
-        "get_bulk_order_detail",
-        "get_reschedule_slots",
-        "get_bulk_reschedule_slots",
-        "get_reassignment_candidates",
-        "get_bulk_reassignment_candidates",
-        "get_reassignment_history",
-    }
-)
-PATCH_ACTIONS = frozenset(
-    {
-        "cancel_booking",
-        "reschedule_intent",
-        "reschedule_booking",
-        "cancel_bulk_order",
-        "reschedule_bulk_order",
-        "reassign_booking",
-        "reassign_bulk_order",
-    }
-)
+GET_ACTIONS = frozenset({"list_gift_vouchers", "get_gift_voucher_detail"})
+PATCH_ACTIONS = frozenset({"update_gift_voucher"})
 
 
-class SupportBookingsProxyView(APIView):
-    """
-    ``IsAuthenticated`` — caller must be logged-in support staff; upstream client call uses the internal key.
-    """
-
+class SupportGiftVouchersProxyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _client_url(self, action: str) -> str:
         base = (settings.CLIENT_API_URL or "").rstrip("/")
-        return f"{base}/api/v1/support/bookings/{action}/"
+        return f"{base}/api/v1/support/gift-vouchers/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
         headers = {"Accept": "application/json"}
@@ -69,26 +39,28 @@ class SupportBookingsProxyView(APIView):
             payload = {"error": resp.text or "Invalid JSON from client"}
         return Response(payload, status=resp.status_code)
 
+    def _no_client_url(self):
+        return Response(
+            {"error": "CLIENT_API_URL is not configured"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
     def get(self, request, action, *args, **kwargs):
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         if not base:
-            return Response(
-                {"error": "CLIENT_API_URL is not configured"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return self._no_client_url()
         url = self._client_url(action)
-        params = dict(request.query_params)
         try:
             resp = requests.get(
                 url,
-                params=params,
+                params=dict(request.query_params),
                 headers=self._headers(),
                 timeout=60,
             )
         except requests.RequestException as exc:
-            logger.warning("Support bookings proxy GET failed: %s", exc)
+            logger.warning("Support gift vouchers proxy GET failed: %s", exc)
             return Response(
                 {"error": "Client API unavailable", "detail": str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -100,10 +72,7 @@ class SupportBookingsProxyView(APIView):
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         if not base:
-            return Response(
-                {"error": "CLIENT_API_URL is not configured"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return self._no_client_url()
         url = self._client_url(action)
         try:
             resp = requests.patch(
@@ -113,7 +82,7 @@ class SupportBookingsProxyView(APIView):
                 timeout=60,
             )
         except requests.RequestException as exc:
-            logger.warning("Support bookings proxy PATCH failed: %s", exc)
+            logger.warning("Support gift vouchers proxy PATCH failed: %s", exc)
             return Response(
                 {"error": "Client API unavailable", "detail": str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,

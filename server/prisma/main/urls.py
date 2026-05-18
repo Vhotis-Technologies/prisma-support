@@ -13,7 +13,9 @@ from main.views.customers import SupportCustomersProxyView
 from main.views.activities import SupportActivitiesProxyView
 from main.views.tickets import SupportTicketsProxyView
 from main.views.vouchers import SupportVouchersProxyView
+from main.views.gift_vouchers import SupportGiftVouchersProxyView
 from main.views.accounting import SupportAccountingProxyView
+from main.views.payouts import SupportPayoutsProxyView
 from main.views.password_reset import (
     RequestPasswordResetView,
     ResetPasswordView,
@@ -63,9 +65,19 @@ urlpatterns = [
         name="vouchers",
     ),
     path(
+        "gift-vouchers/<str:action>/",
+        SupportGiftVouchersProxyView.as_view(),
+        name="gift_vouchers",
+    ),
+    path(
         "accounting/<str:action>/",
         SupportAccountingProxyView.as_view(),
         name="accounting",
+    ),
+    path(
+        "payouts/<str:action>/",
+        SupportPayoutsProxyView.as_view(),
+        name="payouts",
     ),
     path("auth/password-reset/", RequestPasswordResetView.as_view(), name="request_password_reset"),
     path(

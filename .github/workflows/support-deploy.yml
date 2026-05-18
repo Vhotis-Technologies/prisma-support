@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: "./support-app/package-lock.json"
 
@@ -132,7 +132,6 @@ jobs:
             sleep 15
 
             echo "Running Django migrations..."
-            docker compose exec -T support_server python manage.py makemigrations
             docker compose exec -T support_server python manage.py migrate
 
             docker system prune -f
@@ -177,7 +176,6 @@ jobs:
             sleep 15
 
             echo "Running Django migrations (staging)..."
-            docker compose -f docker-compose-staging.yml exec -T support_staging_server python manage.py makemigrations
             docker compose -f docker-compose-staging.yml exec -T support_staging_server python manage.py migrate
 
             docker system prune -f
