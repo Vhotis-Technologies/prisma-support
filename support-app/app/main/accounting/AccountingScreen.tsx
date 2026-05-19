@@ -89,7 +89,7 @@ export default function AccountingScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor }]}>
         <ActivityIndicator size="large"  style={{ backgroundColor }}/>
       </View>
     );
@@ -97,7 +97,7 @@ export default function AccountingScreen() {
 
   if (isError) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor }]}>
         <StyledText variant="bodyMedium">Could not load accounting data.</StyledText>
         <Pressable onPress={() => refetch()} style={styles.retry}>
           <StyledText variant="labelLarge">Retry</StyledText>

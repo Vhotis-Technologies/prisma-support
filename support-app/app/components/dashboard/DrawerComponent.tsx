@@ -170,7 +170,8 @@ function DrawerComponent(props: DrawerContentComponentProps) {
         return (
           activeRoute === "payout" ||
           activeRoute === "PayoutScreen" ||
-          activeRoute === "PayoutDetailScreen"
+          activeRoute === "PayoutDetailScreen" ||
+          activeRoute === "CrewUnpaidDetailScreen"
         );
       case "accounting":
         return (

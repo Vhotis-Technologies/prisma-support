@@ -113,7 +113,6 @@ export interface CrewUnpaidEarning {
 export interface CrewBankAccount {
   has_bank_account: boolean;
   account_name: string;
-  bank_name: string;
   iban: string;
   is_primary?: boolean;
   is_verified?: boolean;

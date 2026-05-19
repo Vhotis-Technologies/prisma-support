@@ -8,6 +8,7 @@ const PayoutLayout = () => {
     <Stack screenOptions={screenOptions}>
         <Stack.Screen name="PayoutScreen" options={{ title: "Payout" }} />
         <Stack.Screen name="PayoutDetailScreen" options={{ title: "Payout details" }} />
+        <Stack.Screen name="CrewUnpaidDetailScreen" options={{ title: "Crew unpaid detail" }} />
     </Stack>
   )
 }

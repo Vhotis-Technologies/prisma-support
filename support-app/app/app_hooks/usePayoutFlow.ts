@@ -157,9 +157,10 @@ export function usePayoutFlow() {
     (detail: CrewUnpaidDetail, onSuccess?: () => void) => {
       const amount = detail.unpaid_amount.toFixed(2);
       const bank = detail.bank_account;
-      const bankLine = bank?.has_bank_account
-        ? ` to ${bank.account_name} (${bank.iban})`
-        : "";
+      const bankLine =
+        bank?.has_bank_account && bank.account_name
+          ? ` to ${bank.account_name}${bank.iban ? ` (${bank.iban})` : ""}`
+          : "";
       setAlertConfig({
         isVisible: true,
         title: "Confirm payment made?",

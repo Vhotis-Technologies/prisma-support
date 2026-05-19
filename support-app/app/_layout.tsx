@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { en, registerTranslation } from "react-native-paper-dates";
 import ThemeProvider from "@/app/contexts/ThemeProvider";
@@ -24,19 +24,13 @@ export default function RootLayout() {
               <AuthContextProvider>
                 <NotificationInitializer>
                   <SafeAreaProvider>
-                    <KeyboardAvoidingView
-                      style={{ flex: 1 }}
-                      behavior={Platform.OS === "ios" ? "padding" : "height"}
-                      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-                    >
-                      <GestureHandlerRootView style={styles.root}>
-                        <Stack screenOptions={{ headerShown: false }}>
-                          <Stack.Screen name="main" />
-                          <Stack.Screen name="onboarding" />
-                          <Stack.Screen name="index" />
-                        </Stack>
-                      </GestureHandlerRootView>
-                    </KeyboardAvoidingView>
+                    <GestureHandlerRootView style={styles.root}>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="main" />
+                        <Stack.Screen name="onboarding" />
+                        <Stack.Screen name="index" />
+                      </Stack>
+                    </GestureHandlerRootView>
                   </SafeAreaProvider>
                 </NotificationInitializer>
               </AuthContextProvider>

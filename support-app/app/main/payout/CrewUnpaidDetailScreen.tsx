@@ -73,7 +73,8 @@ export default function CrewUnpaidDetailScreen() {
   } = usePayoutFlow();
 
   const bank = data?.bank_account;
-  const hasBank = Boolean(bank?.has_bank_account && bank.iban);
+  const hasBank = Boolean(bank?.has_bank_account);
+  const hasIban = Boolean(bank?.iban?.trim());
 
   const canPay = useMemo(
     () => Boolean(data && data.unpaid_job_count > 0 && data.unpaid_amount > 0),
@@ -146,28 +147,27 @@ export default function CrewUnpaidDetailScreen() {
                 {bank!.account_name}
               </StyledText>
             </View>
-            {bank!.bank_name ? (
+            {hasIban ? (
               <View style={styles.bankRow}>
                 <StyledText variant="labelMedium" color={muted}>
-                  Bank
+                  IBAN
                 </StyledText>
-                <StyledText variant="bodyLarge" style={{ fontFamily: "BarlowMedium" }}>
-                  {bank!.bank_name}
+                <StyledText
+                  variant="bodyLarge"
+                  style={{ fontFamily: "BarlowMedium" }}
+                  selectable
+                >
+                  {bank!.iban}
                 </StyledText>
               </View>
-            ) : null}
-            <View style={styles.bankRow}>
-              <StyledText variant="labelMedium" color={muted}>
-                IBAN
-              </StyledText>
-              <StyledText
-                variant="bodyLarge"
-                style={{ fontFamily: "BarlowMedium" }}
-                selectable
-              >
-                {bank!.iban}
-              </StyledText>
-            </View>
+            ) : (
+              <View style={[styles.warningBanner, { borderColor: warning, backgroundColor: `${warning}18` }]}>
+                <Ionicons name="warning-outline" size={20} color={warning} />
+                <StyledText variant="bodyMedium" style={{ flex: 1, color: warning }}>
+                  Bank account is on file but IBAN is missing. Ask the crew member to update it in the app.
+                </StyledText>
+              </View>
+            )}
           </>
         ) : (
           <View style={[styles.warningBanner, { borderColor: warning, backgroundColor: `${warning}18` }]}>
