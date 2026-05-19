@@ -33,11 +33,11 @@ const TABS: { key: PayoutTabKind; label: string }[] = [
   { key: "crew", label: "Crew" },
 ];
 
-type CrewSubTab = "unpaid" | "queue";
+type CrewSubTab = "unpaid" | "paid";
 
 const CREW_SUB_TABS: { key: CrewSubTab; label: string }[] = [
-  { key: "unpaid", label: "Unpaid earnings" },
-  { key: "queue", label: "Payout queue" },
+  { key: "unpaid", label: "Unpaid" },
+  { key: "paid", label: "Paid" },
 ];
 
 export default function PayoutScreen() {
@@ -61,9 +61,9 @@ export default function PayoutScreen() {
     skip: !isFocused || !access,
     refetchOnMountOrArgChange: true,
   });
-  const crewQuery = useGetCrewPayoutQueueQuery(undefined, {
+  const crewPaidQuery = useGetCrewPayoutQueueQuery("completed", {
     skip:
-      !isFocused || !access || activeTab !== "crew" || crewSubTab !== "queue",
+      !isFocused || !access || activeTab !== "crew" || crewSubTab !== "paid",
     refetchOnMountOrArgChange: true,
   });
   const crewUnpaidQuery = useGetCrewUnpaidEarningsQuery(undefined, {
@@ -76,11 +76,11 @@ export default function PayoutScreen() {
     if (activeTab === "partner") return partnerQuery.isLoading;
     return crewSubTab === "unpaid"
       ? crewUnpaidQuery.isLoading
-      : crewQuery.isLoading;
+      : crewPaidQuery.isLoading;
   }, [
     activeTab,
     crewSubTab,
-    crewQuery.isLoading,
+    crewPaidQuery.isLoading,
     crewUnpaidQuery.isLoading,
     partnerQuery.isLoading,
   ]);
@@ -89,11 +89,11 @@ export default function PayoutScreen() {
     if (activeTab === "partner") return partnerQuery.isFetching;
     return crewSubTab === "unpaid"
       ? crewUnpaidQuery.isFetching
-      : crewQuery.isFetching;
+      : crewPaidQuery.isFetching;
   }, [
     activeTab,
     crewSubTab,
-    crewQuery.isFetching,
+    crewPaidQuery.isFetching,
     crewUnpaidQuery.isFetching,
     partnerQuery.isFetching,
   ]);
@@ -102,11 +102,11 @@ export default function PayoutScreen() {
     if (activeTab === "partner") return partnerQuery.isError;
     return crewSubTab === "unpaid"
       ? crewUnpaidQuery.isError
-      : crewQuery.isError;
+      : crewPaidQuery.isError;
   }, [
     activeTab,
     crewSubTab,
-    crewQuery.isError,
+    crewPaidQuery.isError,
     crewUnpaidQuery.isError,
     partnerQuery.isError,
   ]);
@@ -115,8 +115,8 @@ export default function PayoutScreen() {
     if (activeTab === "partner") return partnerQuery.refetch();
     return crewSubTab === "unpaid"
       ? crewUnpaidQuery.refetch()
-      : crewQuery.refetch();
-  }, [activeTab, crewSubTab, crewQuery, crewUnpaidQuery, partnerQuery]);
+      : crewPaidQuery.refetch();
+  }, [activeTab, crewSubTab, crewPaidQuery, crewUnpaidQuery, partnerQuery]);
 
   const queueHint = useMemo(() => {
     if (activeTab === "partner") {
@@ -133,15 +133,15 @@ export default function PayoutScreen() {
         ? "No crew with unpaid earnings"
         : `${n} crew member${n === 1 ? "" : "s"} with unpaid earnings`;
     }
-    const n = crewQuery.data?.length ?? 0;
-    if (isLoading && n === 0) return "Loading payouts…";
+    const n = crewPaidQuery.data?.length ?? 0;
+    if (isLoading && n === 0) return "Loading paid crew payments…";
     return n === 0
-      ? "No pending crew payouts"
-      : `${n} crew payout${n === 1 ? "" : "s"} awaiting payment`;
+      ? "No completed crew payments"
+      : `${n} crew payment${n === 1 ? "" : "s"} completed`;
   }, [
     activeTab,
     crewSubTab,
-    crewQuery.data?.length,
+    crewPaidQuery.data?.length,
     crewUnpaidQuery.data?.length,
     isLoading,
     partnerQuery.data?.length,
@@ -156,7 +156,7 @@ export default function PayoutScreen() {
     [router],
   );
 
-  const onCrewPress = useCallback(
+  const onCrewPaidPress = useCallback(
     (item: CrewPayoutQueueItem) => {
       router.push(
         `/main/payout/PayoutDetailScreen?id=${encodeURIComponent(item.id)}&kind=crew` as Href,
@@ -179,9 +179,11 @@ export default function PayoutScreen() {
     [onPartnerPress],
   );
 
-  const renderCrew: ListRenderItem<CrewPayoutQueueItem> = useCallback(
-    ({ item }) => <CrewPayoutItem item={item} onPress={onCrewPress} />,
-    [onCrewPress],
+  const renderCrewPaid: ListRenderItem<CrewPayoutQueueItem> = useCallback(
+    ({ item }) => (
+      <CrewPayoutItem item={item} variant="paid" onPress={onCrewPaidPress} />
+    ),
+    [onCrewPaidPress],
   );
 
   const renderUnpaid: ListRenderItem<CrewUnpaidSummary> = useCallback(
@@ -196,7 +198,7 @@ export default function PayoutScreen() {
     if (crewSubTab === "unpaid") {
       return "Crew members can't request payouts — support pays them directly. Tap a crew member to see the job breakdown and bank details, then record payment after the transfer.";
     }
-    return "Crew payouts you've created. Open one to record the bank reference and mark it paid; the linked earnings are released to the crew member.";
+    return "Payments support has recorded for crew. Tap a row to view amount, paid date, and bank reference.";
   }, [activeTab, crewSubTab]);
 
   const renderCrewSubTabs = useCallback(() => {
@@ -294,7 +296,7 @@ export default function PayoutScreen() {
     if (crewSubTab === "unpaid") {
       return "Crew members with completed jobs and unpaid earnings will appear here. Pull to refresh.";
     }
-    return "Crew payouts you create will appear here.";
+    return "Completed crew payments will appear here after you record them from Unpaid.";
   }, [activeTab, crewSubTab, isError]);
 
   const empty = useMemo(
@@ -305,7 +307,7 @@ export default function PayoutScreen() {
             ? "No partner payouts"
             : crewSubTab === "unpaid"
               ? "No unpaid earnings"
-              : "No crew payouts"}
+              : "No paid crew payments"}
         </StyledText>
         <StyledText variant="bodyMedium" color={textMuted}>
           {emptyMessage}
@@ -315,14 +317,14 @@ export default function PayoutScreen() {
     [activeTab, crewSubTab, emptyMessage, textMuted],
   );
 
-  const showCrewQueueList = activeTab === "crew" && crewSubTab === "queue";
+  const showCrewPaidList = activeTab === "crew" && crewSubTab === "paid";
   const showCrewUnpaidList = activeTab === "crew" && crewSubTab === "unpaid";
 
   const hasData =
     activeTab === "partner"
       ? (partnerQuery.data?.length ?? 0) > 0
-      : showCrewQueueList
-        ? (crewQuery.data?.length ?? 0) > 0
+      : showCrewPaidList
+        ? (crewPaidQuery.data?.length ?? 0) > 0
         : (crewUnpaidQuery.data?.length ?? 0) > 0;
 
   return (
@@ -362,9 +364,9 @@ export default function PayoutScreen() {
         />
       ) : (
         <FlatList
-          data={crewQuery.data ?? []}
+          data={crewPaidQuery.data ?? []}
           keyExtractor={(item) => item.id}
-          renderItem={renderCrew}
+          renderItem={renderCrewPaid}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={empty}
           refreshing={isFetching && !isLoading}

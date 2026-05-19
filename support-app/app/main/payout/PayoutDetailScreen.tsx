@@ -13,7 +13,7 @@ import StyledTextInput from "@/app/components/helpers/StyledTextInput";
 import { usePayoutFlow } from "@/app/app_hooks/usePayoutFlow";
 import type { PayoutTabKind } from "@/app/interfaces/PayoutInterface";
 import {
-  useGetCrewPayoutQueueQuery,
+  useGetCrewPayoutDetailQuery,
   useGetPartnerPayoutQueueQuery,
 } from "@/app/store/api/payoutApi";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -32,17 +32,18 @@ export default function PayoutDetailScreen() {
   const primary = useThemeColor({}, "primary");
   const success = useThemeColor({}, "success");
 
-  const partnerQuery = useGetPartnerPayoutQueueQuery(undefined, { skip: payoutKind !== "partner" });
-  const crewQuery = useGetCrewPayoutQueueQuery(undefined, { skip: payoutKind !== "crew" });
+  const partnerQuery = useGetPartnerPayoutQueueQuery(undefined, {
+    skip: payoutKind !== "partner",
+  });
+  const crewDetailQuery = useGetCrewPayoutDetailQuery(payoutId, {
+    skip: payoutKind !== "crew" || !payoutId,
+  });
 
   const partnerItem = useMemo(
     () => (partnerQuery.data ?? []).find((p) => p.id === payoutId),
     [partnerQuery.data, payoutId],
   );
-  const crewItem = useMemo(
-    () => (crewQuery.data ?? []).find((p) => p.id === payoutId),
-    [crewQuery.data, payoutId],
-  );
+  const crewItem = crewDetailQuery.data ?? null;
 
   const {
     paymentReference,
@@ -51,15 +52,18 @@ export default function PayoutDetailScreen() {
     setAdminNotes,
     isSubmitting,
     requestMarkPartnerPaid,
-    requestMarkCrewPaid,
   } = usePayoutFlow();
 
   const isLoading =
-    payoutKind === "partner" ? partnerQuery.isLoading : crewQuery.isLoading;
-  const canMarkPaid =
     payoutKind === "partner"
-      ? partnerItem && ["pending", "processing"].includes(partnerItem.status)
-      : crewItem && ["pending", "processing"].includes(crewItem.status);
+      ? partnerQuery.isLoading
+      : crewDetailQuery.isLoading;
+  const isPaidCrew =
+    payoutKind === "crew" && crewItem && crewItem.status === "completed";
+  const canMarkPaid =
+    payoutKind === "partner" &&
+    partnerItem &&
+    ["pending", "processing"].includes(partnerItem.status);
 
   if (!payoutId) {
     return (
@@ -96,10 +100,11 @@ export default function PayoutDetailScreen() {
     return (
       <View style={[styles.emptyWrap, { backgroundColor }]}>
         <Ionicons name="people-outline" size={48} color={muted} />
-        <StyledText variant="titleLarge">Payout not found</StyledText>
+        <StyledText variant="titleLarge">Payment not found</StyledText>
         <StyledText variant="bodyMedium" color={muted}>
-          This payout may have already been completed.
+          This payment record could not be loaded.
         </StyledText>
+        <StyledButton title="Go back" onPress={() => router.back()} variant="tonal" />
       </View>
     );
   }
@@ -135,16 +140,30 @@ export default function PayoutDetailScreen() {
         <StyledText variant="headlineMedium" style={{ fontFamily: "BarlowMedium", marginTop: 12 }}>
           {formatCurrency(amount)}
         </StyledText>
-        <StyledText variant="bodySmall" color={muted} style={{ marginTop: 8 }}>
-          Status: {status}
-        </StyledText>
         {payoutKind === "crew" && crewItem ? (
-          <StyledText variant="bodySmall" color={muted}>
-            {crewItem.pay_frequency_label}
-            {crewItem.period_start_display
-              ? ` · ${crewItem.period_start_display} – ${crewItem.period_end_display}`
-              : ""}
-          </StyledText>
+          <>
+            <StyledText variant="bodySmall" color={muted} style={{ marginTop: 8 }}>
+              {crewItem.pay_frequency_label}
+              {crewItem.period_start_display
+                ? ` · ${crewItem.period_start_display} – ${crewItem.period_end_display}`
+                : ""}
+            </StyledText>
+            {crewItem.paid_at_display ? (
+              <StyledText variant="bodySmall" color={muted}>
+                Paid {crewItem.paid_at_display}
+              </StyledText>
+            ) : null}
+            {crewItem.payout_reference ? (
+              <StyledText variant="bodySmall" color={muted}>
+                Reference {crewItem.payout_reference}
+              </StyledText>
+            ) : null}
+            {crewItem.admin_notes ? (
+              <StyledText variant="bodySmall" color={muted}>
+                Notes {crewItem.admin_notes}
+              </StyledText>
+            ) : null}
+          </>
         ) : null}
         {payoutKind === "partner" && partnerItem?.requested_at_display ? (
           <StyledText variant="bodySmall" color={muted}>
@@ -155,7 +174,9 @@ export default function PayoutDetailScreen() {
           <View style={[styles.paidBanner, { backgroundColor: `${success}18`, borderColor: success }]}>
             <Ionicons name="checkmark-circle" size={20} color={success} />
             <StyledText variant="bodyMedium" style={{ color: success }}>
-              This payout has been marked as paid.
+              {payoutKind === "crew"
+                ? "This crew payment has been recorded."
+                : "This payout has been marked as paid."}
             </StyledText>
           </View>
         ) : null}
@@ -165,8 +186,8 @@ export default function PayoutDetailScreen() {
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
           <StyledText variant="titleMedium">Complete payment</StyledText>
           <StyledText variant="bodySmall" color={muted} style={{ marginBottom: 12 }}>
-            Record the bank transfer, then mark this payout as paid. The{" "}
-            {payoutKind === "partner" ? "partner" : "crew member"} will be notified.
+            Record the bank transfer, then mark this payout as paid. The partner will be
+            notified.
           </StyledText>
           <StyledTextInput
             label="Payment reference (optional)"
@@ -184,10 +205,8 @@ export default function PayoutDetailScreen() {
           <StyledButton
             title={isSubmitting ? "Processing…" : "Mark as paid"}
             onPress={() => {
-              if (payoutKind === "partner" && partnerItem) {
+              if (partnerItem) {
                 requestMarkPartnerPaid(partnerItem, () => router.back());
-              } else if (crewItem) {
-                requestMarkCrewPaid(crewItem, () => router.back());
               }
             }}
             disabled={isSubmitting}
@@ -195,6 +214,10 @@ export default function PayoutDetailScreen() {
             style={{ marginTop: 16 }}
           />
         </View>
+      ) : null}
+
+      {isPaidCrew ? (
+        <StyledButton title="Back" onPress={() => router.back()} variant="tonal" />
       ) : null}
     </ScrollView>
   );

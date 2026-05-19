@@ -23,7 +23,8 @@ function statusLabel(status: string): string {
   }
 }
 
-const CrewPayoutItem = ({ item, onPress }: CrewPayoutItemProps) => {
+const CrewPayoutItem = ({ item, onPress, variant = "pending" }: CrewPayoutItemProps) => {
+  const isPaid = variant === "paid" || item.status === "completed";
   const borderColor = useThemeColor({}, "borders");
   const iconColor = useThemeColor({}, "icons");
   const textMuted = useThemeColor({ light: "#757575", dark: "#9E9E9E" }, "text");
@@ -75,12 +76,30 @@ const CrewPayoutItem = ({ item, onPress }: CrewPayoutItemProps) => {
           : ""}
       </StyledText>
 
-      <View style={styles.row}>
-        <Ionicons name="calendar-outline" size={16} color={iconColor} />
-        <StyledText variant="bodySmall" color={textMuted}>
-          Initiated {item.requested_at_display || item.requested_at}
-        </StyledText>
-      </View>
+      {isPaid && item.paid_at_display ? (
+        <View style={styles.row}>
+          <Ionicons name="checkmark-circle-outline" size={16} color={iconColor} />
+          <StyledText variant="bodySmall" color={textMuted}>
+            Paid {item.paid_at_display}
+          </StyledText>
+        </View>
+      ) : (
+        <View style={styles.row}>
+          <Ionicons name="calendar-outline" size={16} color={iconColor} />
+          <StyledText variant="bodySmall" color={textMuted}>
+            Initiated {item.requested_at_display || item.requested_at}
+          </StyledText>
+        </View>
+      )}
+
+      {isPaid && item.payout_reference ? (
+        <View style={styles.row}>
+          <Ionicons name="document-text-outline" size={16} color={iconColor} />
+          <StyledText variant="bodySmall" color={textMuted}>
+            Ref {item.payout_reference}
+          </StyledText>
+        </View>
+      ) : null}
     </Pressable>
   );
 };

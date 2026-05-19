@@ -79,6 +79,12 @@ export interface PartnerPayoutItemProps {
 export interface CrewPayoutItemProps {
   item: CrewPayoutQueueItem;
   onPress?: (item: CrewPayoutQueueItem) => void;
+  /** When "paid", emphasize completion date and reference instead of initiated date. */
+  variant?: "paid" | "pending";
+}
+
+export interface CrewPayoutDetailResponse {
+  data?: { payout?: CrewPayoutQueueItem };
 }
 
 /** Aggregated unpaid earnings for a single crew member. */

@@ -4,6 +4,7 @@ import type {
   CreateCrewPayoutResponse,
   RecordCrewPaymentMadeArg,
   RecordCrewPaymentMadeResponse,
+  CrewPayoutDetailResponse,
   CrewPayoutQueueItem,
   CrewPayoutQueueResponse,
   CrewUnpaidDetail,
@@ -52,7 +53,23 @@ const payoutApi = createApi({
       }),
       transformResponse: (response: CrewPayoutQueueResponse) =>
         response.data?.payout_requests ?? [],
-      providesTags: [{ type: "CrewPayoutQueue", id: "LIST" }],
+      providesTags: (_result, _err, status) => [
+        {
+          type: "CrewPayoutQueue",
+          id: status === "completed" ? "COMPLETED" : "LIST",
+        },
+      ],
+    }),
+
+    getCrewPayoutDetail: builder.query<CrewPayoutQueueItem | null, string>({
+      query: (payoutId) => ({
+        url: "/api/v1/payouts/get_crew_payout_detail/",
+        method: "GET",
+        params: { payout_id: payoutId },
+      }),
+      transformResponse: (response: CrewPayoutDetailResponse) =>
+        response.data?.payout ?? null,
+      providesTags: (_result, _err, id) => [{ type: "CrewPayoutQueue", id }],
     }),
 
     getPartnerBalance: builder.query<PartnerBalance | null, string>({
@@ -112,6 +129,7 @@ const payoutApi = createApi({
       }),
       invalidatesTags: [
         { type: "CrewPayoutQueue", id: "LIST" },
+        { type: "CrewPayoutQueue", id: "COMPLETED" },
         { type: "CrewUnpaidEarnings", id: "LIST" },
       ],
     }),
@@ -130,7 +148,7 @@ const payoutApi = createApi({
     }),
 
     recordCrewPaymentMade: builder.mutation<
-      RecordCrewPaymentMadeResponse,
+      RecordCrewPaymentMadeResponse["data"],
       RecordCrewPaymentMadeArg
     >({
       query: (body) => ({
@@ -138,8 +156,11 @@ const payoutApi = createApi({
         method: "POST",
         data: body,
       }),
+      transformResponse: (response: RecordCrewPaymentMadeResponse) =>
+        response.data,
       invalidatesTags: (_result, _err, arg) => [
         { type: "CrewPayoutQueue", id: "LIST" },
+        { type: "CrewPayoutQueue", id: "COMPLETED" },
         { type: "CrewUnpaidEarnings", id: "LIST" },
         { type: "CrewUnpaidEarnings", id: arg.crew_member_id },
       ],
@@ -150,6 +171,7 @@ const payoutApi = createApi({
 export const {
   useGetPartnerPayoutQueueQuery,
   useGetCrewPayoutQueueQuery,
+  useGetCrewPayoutDetailQuery,
   useGetPartnerBalanceQuery,
   useGetCrewUnpaidEarningsQuery,
   useGetCrewUnpaidEarningsDetailQuery,

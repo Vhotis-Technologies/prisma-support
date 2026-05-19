@@ -5,31 +5,37 @@
 import { useCallback, useState } from "react";
 import { useAlertContext } from "@/app/contexts/AlertContext";
 import type {
-  CrewPayoutQueueItem,
   CrewUnpaidDetail,
   PartnerPayoutQueueItem,
 } from "@/app/interfaces/PayoutInterface";
 import {
-  useMarkCrewPayoutPaidMutation,
   useMarkPartnerPayoutPaidMutation,
   useRecordCrewPaymentMadeMutation,
 } from "@/app/store/api/payoutApi";
 
 function getErrMsg(e: unknown): string {
   if (!e || typeof e !== "object") return "Something went wrong";
-  const data = (e as { data?: unknown }).data;
+  const errObj = e as { data?: unknown; status?: number };
+  const data = errObj.data;
   if (typeof data === "object" && data !== null && "error" in data) {
     const err = (data as { error: unknown }).error;
     if (typeof err === "string" && err.trim()) return err;
   }
-  if (typeof data === "string" && data.trim()) return data;
+  if (typeof data === "string" && data.trim()) {
+    if (data.includes("<!DOCTYPE html>") || data.includes("Server Error")) {
+      return "Server error while saving. Check detailer logs — the payment may still have been recorded.";
+    }
+    return data;
+  }
+  if (errObj.status === 500) {
+    return "Server error while saving. Check detailer logs — the payment may still have been recorded.";
+  }
   return "Something went wrong";
 }
 
 export function usePayoutFlow() {
   const { setAlertConfig, setIsVisible } = useAlertContext();
   const [markPartnerPaid, { isLoading: partnerLoading }] = useMarkPartnerPayoutPaidMutation();
-  const [markCrewPaid, { isLoading: crewLoading }] = useMarkCrewPayoutPaidMutation();
   const [recordCrewPayment, { isLoading: recordingCrewPayment }] =
     useRecordCrewPaymentMadeMutation();
   const [paymentReference, setPaymentReference] = useState("");
@@ -110,49 +116,6 @@ export function usePayoutFlow() {
     ],
   );
 
-  const requestMarkCrewPaid = useCallback(
-    (item: CrewPayoutQueueItem, onSuccess?: () => void) => {
-      const amount = item.amount.toFixed(2);
-      setAlertConfig({
-        isVisible: true,
-        title: "Mark crew payout as paid?",
-        message: `Confirm payment of £${amount} to ${item.crew_member_name}. Their payout status will update in the crew app.`,
-        type: "warning",
-        confirmLabel: "Mark paid",
-        onClose: () => setIsVisible(false),
-        onConfirm: () => {
-          void (async () => {
-            try {
-              await markCrewPaid({
-                payout_request_id: item.id,
-                payment_reference: paymentReference.trim() || undefined,
-                admin_notes: adminNotes.trim() || undefined,
-              }).unwrap();
-              setPaymentReference("");
-              setAdminNotes("");
-              showSuccess(
-                `Crew payout of £${amount} has been recorded.`,
-                onSuccess,
-              );
-            } catch (e) {
-              setIsVisible(false);
-              showError("Could not complete payout", getErrMsg(e));
-            }
-          })();
-        },
-      });
-    },
-    [
-      adminNotes,
-      markCrewPaid,
-      paymentReference,
-      setAlertConfig,
-      setIsVisible,
-      showError,
-      showSuccess,
-    ],
-  );
-
   const requestRecordCrewPaymentMade = useCallback(
     (detail: CrewUnpaidDetail, onSuccess?: () => void) => {
       const amount = detail.unpaid_amount.toFixed(2);
@@ -210,9 +173,8 @@ export function usePayoutFlow() {
     setPaymentReference,
     adminNotes,
     setAdminNotes,
-    isSubmitting: partnerLoading || crewLoading || recordingCrewPayment,
+    isSubmitting: partnerLoading || recordingCrewPayment,
     requestMarkPartnerPaid,
-    requestMarkCrewPaid,
     requestRecordCrewPaymentMade,
   };
 }
