@@ -1,9 +1,7 @@
 """URL routes for the support API (included under api/v1/)."""
 
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
-
-from main.views.authentication import AuthenticationView, CustomTokenObtainPairView
+from main.views.authentication import AuthenticationView, CustomTokenObtainPairView, TokenRefreshView
 from main.views.notifications import NotificationsView
 from main.views.profile import ProfileView
 from main.views.dashboard import SupportDashboardView

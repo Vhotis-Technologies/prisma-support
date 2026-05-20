@@ -34,10 +34,12 @@ class SupportCrewProxyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _detailer_url(self, action: str) -> str:
+        """Build detailer support crew URL for the given action segment."""
         base = (getattr(settings, "DETAILER_API_URL", None) or "").rstrip("/")
         return f"{base}/api/v1/support/crew/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
+        """Internal key headers for detailer API (required for crew proxy)."""
         headers = {"Accept": "application/json"}
         if content_type_json:
             headers["Content-Type"] = "application/json"
@@ -47,6 +49,7 @@ class SupportCrewProxyView(APIView):
         return headers
 
     def _forward_response(self, resp: requests.Response) -> Response:
+        """Mirror detailer JSON response to the support app."""
         try:
             payload = resp.json() if resp.content else {}
         except ValueError:
@@ -54,6 +57,7 @@ class SupportCrewProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def get(self, request, action, *args, **kwargs):
+        """Proxy crew list/detail GET; fails fast if internal key or detailer URL missing."""
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         key = (getattr(settings, "SUPPORT_INTERNAL_API_KEY", None) or "").strip()
@@ -93,6 +97,7 @@ class SupportCrewProxyView(APIView):
         return self._forward_response(resp)
 
     def patch(self, request, action, *args, **kwargs):
+        """Proxy crew profile updates (e.g. ``update_crew``) to detailer API."""
         if action not in PATCH_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         key = (getattr(settings, "SUPPORT_INTERNAL_API_KEY", None) or "").strip()

@@ -42,6 +42,8 @@ export default function B2CDetailsScreen() {
     renewSubscription,
     terminateSubscriptionLoading,
     renewSubscriptionLoading,
+    deleteUserAccount,
+    deleteUserAccountLoading,
   } = useCustomerFlow(customerId, "b2c");
 
   const subscription: FleetSubscription | null = customer?.subscription ?? null;
@@ -74,6 +76,31 @@ export default function B2CDetailsScreen() {
     }
     return { label: "Active", color: success };
   })();
+
+  const onDeleteAccount = () => {
+    if (!customer) return;
+    setAlertConfig({
+      isVisible: true,
+      title: "Delete customer account?",
+      message:
+        `Deactivate ${customer.name}'s account. They will not be able to sign in. ` +
+        `Booking history is retained for compliance.`,
+      type: "error",
+      confirmLabel: "Delete account",
+      onClose: () => setIsVisible(false),
+      onConfirm: () => {
+        void (async () => {
+          try {
+            await deleteUserAccount("Deleted by support");
+            setIsVisible(false);
+            router.back();
+          } catch {
+            setIsVisible(false);
+          }
+        })();
+      },
+    });
+  };
 
   const onTerminateSubscription = () => {
     if (!subscription || subscription.status === "terminated") return;
@@ -301,7 +328,7 @@ export default function B2CDetailsScreen() {
           Last booking: {customer.last_booking_date}
         </StyledText>
         <StyledText variant="bodySmall" color={muted}>
-          Avg booking value: {formatCurrency(customer.average_booking_value)}
+          Avg booking value: {formatCurrency(customer.average_booking_value, customer.address?.country)}
         </StyledText>
         <StyledText variant="bodySmall" color={muted}>
           Completed: {customer.completed_bookings} · Cancelled: {customer.cancelled_bookings}
@@ -325,6 +352,15 @@ export default function B2CDetailsScreen() {
             params: { id: customer.id },
           } as Href)
         }
+      />
+
+      <StyledButton
+        title={deleteUserAccountLoading ? "Deleting…" : "Delete account"}
+        icon={<Ionicons name="trash-outline" size={18} color="#fff" />}
+        onPress={onDeleteAccount}
+        disabled={deleteUserAccountLoading}
+        variant="tonal"
+        style={{ borderColor: error, borderWidth: 1 }}
       />
     </ScrollView>
   );

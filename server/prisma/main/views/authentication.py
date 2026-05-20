@@ -21,16 +21,18 @@ from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView as BaseTokenRefreshView
 
 from main.models.user import SupportStaff, User
 from main.serializers import (
     CustomTokenObtainPairSerializer,
     support_app_user_payload,
 )
+from main.util.ratelimit_helpers import rate_limit_json_response
 
 
 def _auth_rate_limit_block(request):
+    """Stricter 429 response for login/register endpoints (5/min per IP)."""
     return JsonResponse({"detail": "Too many requests. Try again later."}, status=429)
 
 
@@ -44,6 +46,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 @method_decorator(
+    ratelimit(key="ip", rate="30/m", method="POST", block=rate_limit_json_response),
+    name="post",
+)
+class TokenRefreshView(BaseTokenRefreshView):
+    permission_classes = [AllowAny]
+
+
+@method_decorator(
     ratelimit(key="ip", rate="5/m", method="POST", block=_auth_rate_limit_block),
     name="post",
 )
@@ -54,6 +64,7 @@ class AuthenticationView(CreateAPIView):
     }
 
     def post(self, request, *args, **kwargs):
+        """Route ``action`` URL segment to register or other onboarding handlers."""
         action = kwargs.get("action")
         if action not in self.action_handlers:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)

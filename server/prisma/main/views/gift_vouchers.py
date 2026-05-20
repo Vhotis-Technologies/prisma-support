@@ -1,5 +1,9 @@
 """
 HTTP proxy: support-app → client Prisma ``support/gift-vouchers/{action}/``.
+
+**Auth:** JWT on BFF; upstream ``X-Support-Internal-Key``.
+
+**Actions:** ``list_gift_vouchers``, ``get_gift_voucher_detail``, ``update_gift_voucher``.
 """
 import logging
 
@@ -17,13 +21,17 @@ PATCH_ACTIONS = frozenset({"update_gift_voucher"})
 
 
 class SupportGiftVouchersProxyView(APIView):
+    """Authenticated BFF for gift voucher list, detail, and PATCH updates."""
+
     permission_classes = [IsAuthenticated]
 
     def _client_url(self, action: str) -> str:
+        """Client gift-vouchers action URL."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         return f"{base}/api/v1/support/gift-vouchers/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
+        """Proxy headers including internal API key."""
         headers = {"Accept": "application/json"}
         if content_type_json:
             headers["Content-Type"] = "application/json"
@@ -33,6 +41,7 @@ class SupportGiftVouchersProxyView(APIView):
         return headers
 
     def _forward_response(self, resp: requests.Response) -> Response:
+        """Mirror client JSON response."""
         try:
             payload = resp.json() if resp.content else {}
         except ValueError:
@@ -40,12 +49,14 @@ class SupportGiftVouchersProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def _no_client_url(self):
+        """503 when ``CLIENT_API_URL`` is not configured."""
         return Response(
             {"error": "CLIENT_API_URL is not configured"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
     def get(self, request, action, *args, **kwargs):
+        """Proxy gift voucher GET actions."""
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
@@ -68,6 +79,7 @@ class SupportGiftVouchersProxyView(APIView):
         return self._forward_response(resp)
 
     def patch(self, request, action, *args, **kwargs):
+        """Proxy gift voucher updates to client API."""
         if action not in PATCH_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")

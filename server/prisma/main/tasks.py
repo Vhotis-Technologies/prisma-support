@@ -1,3 +1,6 @@
+"""
+Celery tasks for the support Django app (transactional email via Microsoft Graph).
+"""
 from celery import shared_task
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -7,6 +10,17 @@ from main.util.graph_mail import send_mail as graph_send_mail
 
 @shared_task
 def send_password_reset_email(user_email, user_name, reset_token):
+    """
+    Queue HTML password-reset email with web link to ``/api/v1/auth/web-reset-password/``.
+
+    Args:
+        user_email: Recipient address.
+        user_name: Display name for template greeting.
+        reset_token: Opaque token appended to reset URL query string.
+
+    Returns:
+        str: Success or failure message for Celery logs.
+    """
     subject = "Reset Your Prisma Support Password"
     base = (getattr(settings, "SUPPORT_API_URL", None) or "").strip().rstrip("/")
     if not base:

@@ -1,4 +1,4 @@
-import { createApi } from "@reduxjs/toolkit/query/react";
+﻿import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   B2CDetails,
   B2CListItem,
@@ -302,6 +302,23 @@ const customerApi = createApi({
         { type: "SupportCustomers", id: "b2c" },
       ],
     }),
+
+    deleteUserAccount: builder.mutation<
+      { message?: string; user_id?: string; deleted_by?: string },
+      { user_id: string; reason?: string }
+    >({
+      query: (body) => ({
+        url: "/api/v1/customers/delete_user_account/",
+        method: "POST",
+        data: body,
+      }),
+      transformResponse: (response: { data?: { message?: string; user_id?: string; deleted_by?: string } }) =>
+        response.data ?? {},
+      invalidatesTags: (_r, _e, { user_id }) => [
+        { type: "SupportCustomers", id: "b2c" },
+        { type: "SupportCustomer", id: `b2c-${user_id}` },
+      ],
+    }),
   }),
 });
 
@@ -320,5 +337,6 @@ export const {
   useRemoveSupportVehicleMutation,
   useRemoveSupportBranchMutation,
   useSupportVehicleTransferMutation,
+  useDeleteUserAccountMutation,
 } = customerApi;
 export default customerApi;

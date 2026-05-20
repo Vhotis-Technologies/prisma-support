@@ -1,3 +1,9 @@
+"""
+Password reset for support staff: API + web form flows.
+
+Uses ``PasswordResetToken`` on the support DB and Celery email task.
+Only accounts with support access may reset (see ``_user_may_use_support_app``).
+"""
 import secrets
 from datetime import timedelta
 
@@ -18,10 +24,12 @@ from main.tasks import send_password_reset_email
 
 
 def _password_reset_rate_limit_block(request):
+    """429 JSON for password-reset endpoints (5/min per IP)."""
     return JsonResponse({"detail": "Too many requests. Try again later."}, status=429)
 
 
 def _user_may_use_support_app(user) -> bool:
+    """True when ``user`` may log into or reset password for the support app."""
     return (
         user.is_admin
         or user.is_support
@@ -36,9 +44,12 @@ def _user_may_use_support_app(user) -> bool:
     name="post",
 )
 class RequestPasswordResetView(APIView):
+    """Start reset: email → token + async email (no email enumeration)."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Invalidate prior tokens, create new token, queue reset email."""
         email = request.data.get("email", "").strip().lower()
 
         if not email:
@@ -93,9 +104,12 @@ class RequestPasswordResetView(APIView):
     name="post",
 )
 class ValidateResetTokenView(APIView):
+    """Mobile/API: check token validity before showing new-password UI."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Return ``valid``, expiry, and masked user email when token is active."""
         token = request.data.get("token", "").strip()
 
         if not token:
@@ -137,9 +151,12 @@ class ValidateResetTokenView(APIView):
     name="post",
 )
 class ResetPasswordView(APIView):
+    """API reset: set password and return fresh JWT pair."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Validate token, set password, mark token used, return access/refresh."""
         token = request.data.get("token", "").strip()
         new_password = request.data.get("password", "").strip()
 
@@ -199,9 +216,12 @@ class ResetPasswordView(APIView):
 
 
 class WebResetPasswordView(APIView):
+    """Browser reset form linked from email (HTML templates)."""
+
     permission_classes = [AllowAny]
 
     def get(self, request):
+        """Render password form or invalid-token page from query ``token``."""
         token = request.GET.get("token", "").strip()
 
         if not token:
@@ -246,6 +266,7 @@ class WebResetPasswordView(APIView):
             )
 
     def post(self, request):
+        """Process form POST: validate passwords, update user, show success template."""
         token = request.POST.get("token", "").strip()
         new_password = request.POST.get("password", "").strip()
         confirm_password = request.POST.get("confirm_password", "").strip()

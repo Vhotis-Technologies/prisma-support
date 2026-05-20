@@ -52,6 +52,7 @@ export default function PayoutDetailScreen() {
     setAdminNotes,
     isSubmitting,
     requestMarkPartnerPaid,
+    requestMarkCrewPayoutPaid,
   } = usePayoutFlow();
 
   const isLoading =
@@ -60,10 +61,14 @@ export default function PayoutDetailScreen() {
       : crewDetailQuery.isLoading;
   const isPaidCrew =
     payoutKind === "crew" && crewItem && crewItem.status === "completed";
-  const canMarkPaid =
+  const canMarkPartnerPaid =
     payoutKind === "partner" &&
     partnerItem &&
     ["pending", "processing"].includes(partnerItem.status);
+  const canMarkCrewPending =
+    payoutKind === "crew" &&
+    crewItem &&
+    ["pending", "processing"].includes(crewItem.status);
 
   if (!payoutId) {
     return (
@@ -182,7 +187,7 @@ export default function PayoutDetailScreen() {
         ) : null}
       </View>
 
-      {canMarkPaid ? (
+      {canMarkPartnerPaid ? (
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
           <StyledText variant="titleMedium">Complete payment</StyledText>
           <StyledText variant="bodySmall" color={muted} style={{ marginBottom: 12 }}>
@@ -216,7 +221,37 @@ export default function PayoutDetailScreen() {
         </View>
       ) : null}
 
-      {isPaidCrew ? (
+      {canMarkCrewPending && crewItem ? (
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+          <StyledText variant="titleMedium">Complete crew payment</StyledText>
+          <StyledText variant="bodySmall" color={muted} style={{ marginBottom: 12 }}>
+            After the bank transfer, mark this payout as paid so the crew app shows completed
+            history.
+          </StyledText>
+          <StyledTextInput
+            label="Payment reference (optional)"
+            value={paymentReference}
+            onChangeText={setPaymentReference}
+            placeholder="e.g. CHAPS ref, transaction ID"
+          />
+          <StyledTextInput
+            label="Admin notes (optional)"
+            value={adminNotes}
+            onChangeText={setAdminNotes}
+            placeholder="Internal note for support records"
+            multiline
+          />
+          <StyledButton
+            title={isSubmitting ? "Processing…" : "Mark as paid"}
+            onPress={() => requestMarkCrewPayoutPaid(crewItem, () => router.back())}
+            disabled={isSubmitting}
+            variant="medium"
+            style={{ marginTop: 16 }}
+          />
+        </View>
+      ) : null}
+
+      {isPaidCrew || (!canMarkPartnerPaid && !canMarkCrewPending) ? (
         <StyledButton title="Back" onPress={() => router.back()} variant="tonal" />
       ) : null}
     </ScrollView>

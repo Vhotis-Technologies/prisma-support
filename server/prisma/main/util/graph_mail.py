@@ -1,3 +1,6 @@
+"""
+Microsoft Graph client-credentials mail sender for support transactional email.
+"""
 import os
 
 import msal
@@ -11,6 +14,7 @@ USER = os.getenv("GRAPH_USER")
 
 
 def get_access_token():
+    """Acquire app-only Graph API bearer token (silent cache, else client credentials)."""
     authority = f"https://login.microsoftonline.com/{TENANT_ID}"
     app = msal.ConfidentialClientApplication(
         CLIENT_ID, authority=authority, client_credential=CLIENT_SECRET
@@ -33,6 +37,17 @@ def get_access_token():
 
 
 def send_mail(subject, body_html, recipient):
+    """
+    Send HTML email via Graph ``sendMail`` for the configured mailbox user.
+
+    Args:
+        subject: Email subject line.
+        body_html: HTML body content.
+        recipient: To-address string.
+
+    Returns:
+        True on HTTP 202; raises on Graph errors.
+    """
     access_token = get_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
     email_msg = {

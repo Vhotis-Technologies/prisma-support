@@ -21,6 +21,7 @@ class NotificationsView(APIView):
     }
 
     def patch(self, request, *args, **kwargs):
+        """Handle PATCH actions (currently ``save_notification_token`` only)."""
         action = kwargs.get("action")
         if action not in self.action_handlers:
             return Response(
@@ -31,6 +32,7 @@ class NotificationsView(APIView):
         return handler(request)
 
     def _save_notification_token(self, request):
+        """Persist Expo/device push token on the authenticated support ``User``."""
         try:
             token = request.data.get("token")
             request.user.notification_token = token

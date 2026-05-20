@@ -340,6 +340,9 @@ export type UseCustomerFlowResult<Seg extends CustomerSegment> = {
   renewSubscriptionLoading: boolean;
   removeVehicleLoading: boolean;
   removeBranchLoading: boolean;
+  /** B2C only; no-op when segment is fleet/partner. */
+  deleteUserAccount: (reason?: string) => Promise<void>;
+  deleteUserAccountLoading: boolean;
 };
 
 export interface B2CCustomerRowProps {

@@ -25,13 +25,21 @@ PATCH_ACTIONS = frozenset({"update_ticket"})
 
 
 class SupportTicketsProxyView(APIView):
+    """
+    BFF for client support ticket list, detail, and status updates.
+
+    **Auth:** JWT here; ``X-Support-Internal-Key`` on upstream client calls.
+    """
+
     permission_classes = [IsAuthenticated]
 
     def _client_url(self, action: str) -> str:
+        """Client support tickets action URL."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         return f"{base}/api/v1/support/tickets/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
+        """Proxy headers with internal API key."""
         headers = {"Accept": "application/json"}
         if content_type_json:
             headers["Content-Type"] = "application/json"
@@ -41,6 +49,7 @@ class SupportTicketsProxyView(APIView):
         return headers
 
     def _forward_response(self, resp: requests.Response) -> Response:
+        """Mirror client ticket API JSON response."""
         try:
             payload = resp.json() if resp.content else {}
         except ValueError:
@@ -48,6 +57,7 @@ class SupportTicketsProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def get(self, request, action, *args, **kwargs):
+        """Proxy ticket list/detail reads."""
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
@@ -74,6 +84,7 @@ class SupportTicketsProxyView(APIView):
         return self._forward_response(resp)
 
     def patch(self, request, action, *args, **kwargs):
+        """Proxy ticket status updates (e.g. resolve/close) to client API."""
         if action not in PATCH_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")

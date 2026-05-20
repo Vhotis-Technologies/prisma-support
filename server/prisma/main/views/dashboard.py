@@ -26,6 +26,7 @@ class SupportDashboardView(APIView):
     }
 
     def get(self, request, *args, **kwargs):
+        """Route dashboard action (e.g. ``get_dashboard_data``) to handler."""
         action = kwargs.get('action')
         if action not in self.action_handler:
             return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
@@ -33,6 +34,7 @@ class SupportDashboardView(APIView):
         return handler(request)
 
     def _get_dashboard_data(self, request):
+        """Forward timeframe query params to client support dashboard aggregates."""
         base = (settings.CLIENT_API_URL or '').rstrip('/')
         if not base:
             return Response(

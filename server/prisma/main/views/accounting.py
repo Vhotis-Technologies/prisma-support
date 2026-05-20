@@ -27,18 +27,27 @@ PDF_ACTION = "export_month_pdf"
 
 
 class SupportAccountingProxyView(APIView):
+    """
+    BFF proxy for client support accounting (summaries, month detail, PDF export).
+
+    **Auth:** JWT ``IsAuthenticated`` on this app; upstream uses ``X-Support-Internal-Key``.
+    """
+
     permission_classes = [IsAuthenticated]
 
     def perform_content_negotiation(self, request, force=False):
+        """Force JSON renderer for PDF action so DRF does not reject ``Accept: */*`` early."""
         if self.kwargs.get("action") == PDF_ACTION:
             return JSONRenderer(), JSONRenderer.media_type
         return super().perform_content_negotiation(request, force)
 
     def _client_url(self, action: str) -> str:
+        """Full URL to client ``/api/v1/support/accounting/{action}/``."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         return f"{base}/api/v1/support/accounting/{action}/"
 
     def _headers(self) -> dict[str, str]:
+        """Proxy headers with internal key (no actor email on accounting reads)."""
         headers = {"Accept": "application/json"}
         key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
         if key:
@@ -46,6 +55,7 @@ class SupportAccountingProxyView(APIView):
         return headers
 
     def _forward_json(self, resp: requests.Response) -> Response:
+        """Pass through client JSON body and HTTP status to the support app."""
         try:
             payload = resp.json() if resp.content else {}
         except (ValueError, TypeError):
@@ -53,6 +63,7 @@ class SupportAccountingProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def get(self, request, action, *args, **kwargs):
+        """Forward GET to client accounting action (JSON or binary PDF)."""
         if action == PDF_ACTION:
             return self._forward_pdf(request)
         if action not in JSON_ACTIONS:
@@ -77,6 +88,7 @@ class SupportAccountingProxyView(APIView):
         return self._forward_json(resp)
 
     def _forward_pdf(self, request):
+        """Stream PDF bytes and Content-Disposition from client export endpoint."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         if not base:
             return Response(

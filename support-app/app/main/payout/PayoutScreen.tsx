@@ -33,10 +33,11 @@ const TABS: { key: PayoutTabKind; label: string }[] = [
   { key: "crew", label: "Crew" },
 ];
 
-type CrewSubTab = "unpaid" | "paid";
+type CrewSubTab = "unpaid" | "pending" | "paid";
 
 const CREW_SUB_TABS: { key: CrewSubTab; label: string }[] = [
   { key: "unpaid", label: "Unpaid" },
+  { key: "pending", label: "Pending" },
   { key: "paid", label: "Paid" },
 ];
 
@@ -66,6 +67,11 @@ export default function PayoutScreen() {
       !isFocused || !access || activeTab !== "crew" || crewSubTab !== "paid",
     refetchOnMountOrArgChange: true,
   });
+  const crewPendingQuery = useGetCrewPayoutQueueQuery(undefined, {
+    skip:
+      !isFocused || !access || activeTab !== "crew" || crewSubTab !== "pending",
+    refetchOnMountOrArgChange: true,
+  });
   const crewUnpaidQuery = useGetCrewUnpaidEarningsQuery(undefined, {
     skip:
       !isFocused || !access || activeTab !== "crew" || crewSubTab !== "unpaid",
@@ -74,49 +80,52 @@ export default function PayoutScreen() {
 
   const isLoading = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isLoading;
-    return crewSubTab === "unpaid"
-      ? crewUnpaidQuery.isLoading
-      : crewPaidQuery.isLoading;
+    if (crewSubTab === "unpaid") return crewUnpaidQuery.isLoading;
+    if (crewSubTab === "pending") return crewPendingQuery.isLoading;
+    return crewPaidQuery.isLoading;
   }, [
     activeTab,
     crewSubTab,
     crewPaidQuery.isLoading,
+    crewPendingQuery.isLoading,
     crewUnpaidQuery.isLoading,
     partnerQuery.isLoading,
   ]);
 
   const isFetching = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isFetching;
-    return crewSubTab === "unpaid"
-      ? crewUnpaidQuery.isFetching
-      : crewPaidQuery.isFetching;
+    if (crewSubTab === "unpaid") return crewUnpaidQuery.isFetching;
+    if (crewSubTab === "pending") return crewPendingQuery.isFetching;
+    return crewPaidQuery.isFetching;
   }, [
     activeTab,
     crewSubTab,
     crewPaidQuery.isFetching,
+    crewPendingQuery.isFetching,
     crewUnpaidQuery.isFetching,
     partnerQuery.isFetching,
   ]);
 
   const isError = useMemo(() => {
     if (activeTab === "partner") return partnerQuery.isError;
-    return crewSubTab === "unpaid"
-      ? crewUnpaidQuery.isError
-      : crewPaidQuery.isError;
+    if (crewSubTab === "unpaid") return crewUnpaidQuery.isError;
+    if (crewSubTab === "pending") return crewPendingQuery.isError;
+    return crewPaidQuery.isError;
   }, [
     activeTab,
     crewSubTab,
     crewPaidQuery.isError,
+    crewPendingQuery.isError,
     crewUnpaidQuery.isError,
     partnerQuery.isError,
   ]);
 
   const refetch = useCallback(() => {
     if (activeTab === "partner") return partnerQuery.refetch();
-    return crewSubTab === "unpaid"
-      ? crewUnpaidQuery.refetch()
-      : crewPaidQuery.refetch();
-  }, [activeTab, crewSubTab, crewPaidQuery, crewUnpaidQuery, partnerQuery]);
+    if (crewSubTab === "unpaid") return crewUnpaidQuery.refetch();
+    if (crewSubTab === "pending") return crewPendingQuery.refetch();
+    return crewPaidQuery.refetch();
+  }, [activeTab, crewSubTab, crewPaidQuery, crewPendingQuery, crewUnpaidQuery, partnerQuery]);
 
   const queueHint = useMemo(() => {
     if (activeTab === "partner") {
@@ -133,6 +142,13 @@ export default function PayoutScreen() {
         ? "No crew with unpaid earnings"
         : `${n} crew member${n === 1 ? "" : "s"} with unpaid earnings`;
     }
+    if (crewSubTab === "pending") {
+      const n = crewPendingQuery.data?.length ?? 0;
+      if (isLoading && n === 0) return "Loading pending payouts…";
+      return n === 0
+        ? "No pending crew payouts"
+        : `${n} crew payout${n === 1 ? "" : "s"} awaiting bank transfer`;
+    }
     const n = crewPaidQuery.data?.length ?? 0;
     if (isLoading && n === 0) return "Loading paid crew payments…";
     return n === 0
@@ -142,6 +158,7 @@ export default function PayoutScreen() {
     activeTab,
     crewSubTab,
     crewPaidQuery.data?.length,
+    crewPendingQuery.data?.length,
     crewUnpaidQuery.data?.length,
     isLoading,
     partnerQuery.data?.length,
@@ -156,7 +173,7 @@ export default function PayoutScreen() {
     [router],
   );
 
-  const onCrewPaidPress = useCallback(
+  const onCrewQueuePress = useCallback(
     (item: CrewPayoutQueueItem) => {
       router.push(
         `/main/payout/PayoutDetailScreen?id=${encodeURIComponent(item.id)}&kind=crew` as Href,
@@ -179,11 +196,15 @@ export default function PayoutScreen() {
     [onPartnerPress],
   );
 
-  const renderCrewPaid: ListRenderItem<CrewPayoutQueueItem> = useCallback(
+  const renderCrewQueue: ListRenderItem<CrewPayoutQueueItem> = useCallback(
     ({ item }) => (
-      <CrewPayoutItem item={item} variant="paid" onPress={onCrewPaidPress} />
+      <CrewPayoutItem
+        item={item}
+        variant={crewSubTab === "paid" ? "paid" : "pending"}
+        onPress={onCrewQueuePress}
+      />
     ),
-    [onCrewPaidPress],
+    [crewSubTab, onCrewQueuePress],
   );
 
   const renderUnpaid: ListRenderItem<CrewUnpaidSummary> = useCallback(
@@ -196,7 +217,10 @@ export default function PayoutScreen() {
       return "Partner commission payout requests from the client app. The server re-validates the amount against the partner's approved balance before completing the transfer.";
     }
     if (crewSubTab === "unpaid") {
-      return "Crew members can't request payouts — support pays them directly. Tap a crew member to see the job breakdown and bank details, then record payment after the transfer.";
+      return "Crew members can't request payouts — support pays them directly. Tap a crew member to see the job breakdown and bank details, then record payment or create a pending payout.";
+    }
+    if (crewSubTab === "pending") {
+      return "Payouts created but not yet marked paid. Complete the bank transfer, then mark as paid.";
     }
     return "Payments support has recorded for crew. Tap a row to view amount, paid date, and bank reference.";
   }, [activeTab, crewSubTab]);
@@ -296,6 +320,9 @@ export default function PayoutScreen() {
     if (crewSubTab === "unpaid") {
       return "Crew members with completed jobs and unpaid earnings will appear here. Pull to refresh.";
     }
+    if (crewSubTab === "pending") {
+      return "Pending crew payouts appear here after you create them from Unpaid.";
+    }
     return "Completed crew payments will appear here after you record them from Unpaid.";
   }, [activeTab, crewSubTab, isError]);
 
@@ -307,7 +334,9 @@ export default function PayoutScreen() {
             ? "No partner payouts"
             : crewSubTab === "unpaid"
               ? "No unpaid earnings"
-              : "No paid crew payments"}
+              : crewSubTab === "pending"
+                ? "No pending crew payouts"
+                : "No paid crew payments"}
         </StyledText>
         <StyledText variant="bodyMedium" color={textMuted}>
           {emptyMessage}
@@ -318,6 +347,7 @@ export default function PayoutScreen() {
   );
 
   const showCrewPaidList = activeTab === "crew" && crewSubTab === "paid";
+  const showCrewPendingList = activeTab === "crew" && crewSubTab === "pending";
   const showCrewUnpaidList = activeTab === "crew" && crewSubTab === "unpaid";
 
   const hasData =
@@ -325,7 +355,9 @@ export default function PayoutScreen() {
       ? (partnerQuery.data?.length ?? 0) > 0
       : showCrewPaidList
         ? (crewPaidQuery.data?.length ?? 0) > 0
-        : (crewUnpaidQuery.data?.length ?? 0) > 0;
+        : showCrewPendingList
+          ? (crewPendingQuery.data?.length ?? 0) > 0
+          : (crewUnpaidQuery.data?.length ?? 0) > 0;
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -362,11 +394,26 @@ export default function PayoutScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         />
+      ) : showCrewPendingList ? (
+        <FlatList
+          data={crewPendingQuery.data ?? []}
+          keyExtractor={(item) => item.id}
+          renderItem={renderCrewQueue}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={empty}
+          refreshing={isFetching && !isLoading}
+          onRefresh={() => void refetch()}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
+          showsVerticalScrollIndicator={false}
+        />
       ) : (
         <FlatList
           data={crewPaidQuery.data ?? []}
           keyExtractor={(item) => item.id}
-          renderItem={renderCrewPaid}
+          renderItem={renderCrewQueue}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={empty}
           refreshing={isFetching && !isLoading}

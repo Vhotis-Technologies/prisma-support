@@ -24,6 +24,7 @@ class SupportActivitiesProxyView(APIView):
     }
 
     def get(self, request, *args, **kwargs):
+        """Dispatch GET by URL ``action`` to the configured handler."""
         action = kwargs.get("action")
         if action not in self.action_handler:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
@@ -31,6 +32,7 @@ class SupportActivitiesProxyView(APIView):
         return handler(request)
 
     def _get_activity_feed(self, request):
+        """Proxy ``get_activity_feed`` with ``limit`` / ``since`` query params."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         if not base:
             return Response(

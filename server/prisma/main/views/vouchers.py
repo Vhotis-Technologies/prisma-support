@@ -1,5 +1,9 @@
 """
 HTTP proxy: support-app → client Prisma ``support/vouchers/{action}/``.
+
+**Auth:** JWT on BFF; upstream ``X-Support-Internal-Key``.
+
+**Actions:** ``list_vouchers``, ``get_voucher_detail``, ``create_voucher``, ``update_voucher``.
 """
 import logging
 
@@ -18,13 +22,17 @@ PATCH_ACTIONS = frozenset({"update_voucher"})
 
 
 class SupportVouchersProxyView(APIView):
+    """Authenticated BFF for promotional voucher CRUD via client API."""
+
     permission_classes = [IsAuthenticated]
 
     def _client_url(self, action: str) -> str:
+        """Client vouchers action URL."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         return f"{base}/api/v1/support/vouchers/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
+        """Proxy headers including internal API key."""
         headers = {"Accept": "application/json"}
         if content_type_json:
             headers["Content-Type"] = "application/json"
@@ -34,6 +42,7 @@ class SupportVouchersProxyView(APIView):
         return headers
 
     def _forward_response(self, resp: requests.Response) -> Response:
+        """Mirror client JSON response."""
         try:
             payload = resp.json() if resp.content else {}
         except ValueError:
@@ -41,12 +50,14 @@ class SupportVouchersProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def _no_client_url(self):
+        """503 when ``CLIENT_API_URL`` is not configured."""
         return Response(
             {"error": "CLIENT_API_URL is not configured"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
     def get(self, request, action, *args, **kwargs):
+        """Proxy voucher list/detail GET."""
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
@@ -69,6 +80,7 @@ class SupportVouchersProxyView(APIView):
         return self._forward_response(resp)
 
     def post(self, request, action, *args, **kwargs):
+        """Proxy voucher creation POST to client API."""
         if action not in POST_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
@@ -91,6 +103,7 @@ class SupportVouchersProxyView(APIView):
         return self._forward_response(resp)
 
     def patch(self, request, action, *args, **kwargs):
+        """Proxy voucher updates to client API."""
         if action not in PATCH_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")

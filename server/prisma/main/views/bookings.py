@@ -50,10 +50,12 @@ class SupportBookingsProxyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _client_url(self, action: str) -> str:
+        """Build client support bookings URL for the given action segment."""
         base = (settings.CLIENT_API_URL or "").rstrip("/")
         return f"{base}/api/v1/support/bookings/{action}/"
 
     def _headers(self, content_type_json: bool = False) -> dict:
+        """Internal key + optional JSON content type for PATCH bodies."""
         headers = {"Accept": "application/json"}
         if content_type_json:
             headers["Content-Type"] = "application/json"
@@ -63,6 +65,7 @@ class SupportBookingsProxyView(APIView):
         return headers
 
     def _forward_response(self, resp: requests.Response) -> Response:
+        """Mirror client response JSON and status code to the support app."""
         try:
             payload = resp.json() if resp.content else {}
         except ValueError:
@@ -70,6 +73,7 @@ class SupportBookingsProxyView(APIView):
         return Response(payload, status=resp.status_code)
 
     def get(self, request, action, *args, **kwargs):
+        """Proxy read-only booking actions (list, detail, slots, reassignment candidates)."""
         if action not in GET_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")
@@ -96,6 +100,7 @@ class SupportBookingsProxyView(APIView):
         return self._forward_response(resp)
 
     def patch(self, request, action, *args, **kwargs):
+        """Proxy mutating booking actions (cancel, reschedule, reassign)."""
         if action not in PATCH_ACTIONS:
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         base = (settings.CLIENT_API_URL or "").rstrip("/")

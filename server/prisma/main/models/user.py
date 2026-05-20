@@ -10,7 +10,20 @@ from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
+    """Creates support-staff ``User`` rows (email is the username)."""
+
     def create_user(self, email, password=None, **extra_fields):
+        """
+        Create a normal user with normalized email and hashed password.
+
+        Args:
+            email: Login email (required).
+            password: Plain password (optional for OAuth-style flows).
+            **extra_fields: Extra ``User`` model fields.
+
+        Returns:
+            Saved ``User`` instance.
+        """
         if not email:
             raise ValueError("Email is required")
         email = self.normalize_email(email)
@@ -21,12 +34,19 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        """Create Django admin superuser (``is_staff`` + ``is_superuser``)."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractUser):
+    """
+    Support app operator account (not B2C/fleet customers).
+
+    ``is_support`` / ``SupportStaff`` gate access to the mobile support app and JWT login.
+    """
+
     gender_choices = [
         ('male', 'Male'),
         ('female', 'Female'),
@@ -74,12 +94,14 @@ class User(AbstractUser):
         ]
 
     def save(self, *args, **kwargs):
+        """Assign UUID primary key on first save if not set."""
         if not self.id:
             self.id = uuid.uuid4()
         return super().save(*args, **kwargs)
 
 
 class PasswordResetToken(models.Model):
+    """Single-use token for support-app password reset email links."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     token = models.CharField(max_length=255, unique=True)
@@ -91,9 +113,11 @@ class PasswordResetToken(models.Model):
         db_table = "password_reset_tokens"
 
     def is_expired(self):
+        """True when ``expires_at`` is in the past."""
         return timezone.now() > self.expires_at
 
     def is_valid(self):
+        """True when the token has not been used and is not expired."""
         return not self.used and not self.is_expired()
 
     def __str__(self):
@@ -101,6 +125,8 @@ class PasswordResetToken(models.Model):
 
 
 class SupportStaff(models.Model):
+    """Links a ``User`` to a support role (``admin`` or ``support``) for RBAC in the app."""
+
     support_roles = [
         ('admin', 'Admin'),
         ('support', 'Support'),

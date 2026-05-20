@@ -22,6 +22,7 @@ from django.conf.urls.static import static
 
 
 def health(_request):
+    """Load-balancer liveness probe; returns plain ``ok``."""
     return HttpResponse('ok', content_type='text/plain')
 
 

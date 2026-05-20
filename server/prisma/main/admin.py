@@ -1,3 +1,4 @@
+"""Django admin registrations for support staff users and local ticket models."""
 from django.contrib import admin
 
 # Register your models here.

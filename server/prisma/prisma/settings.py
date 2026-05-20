@@ -106,6 +106,7 @@ WSGI_APPLICATION = 'prisma.wsgi.application'
 
 
 def _resolve_database_url():
+    """Build Postgres URL from ``DATABASE_URL`` or ``POSTGRES_*`` env vars; empty if unset."""
     explicit = os.getenv('DATABASE_URL', '').strip()
     if explicit:
         return explicit
@@ -141,10 +142,12 @@ if IS_STAGING:
     GS_CREDENTIALS_PATH_STAGING = os.path.join(BASE_DIR, 'prisma-6fc48-642e49c334e8.json')
     GS_BUCKET_NAME_STAGING = os.getenv('GS_BUCKET_NAME_STAGING', 'prisma_staging_bucket')
     GS_LOCATION_STAGING = os.getenv('GS_LOCATION_STAGING', 'support-app')
-    GS_CREDENTIALS_STAGING = service_account.Credentials.from_service_account_file(
-        GS_CREDENTIALS_PATH_STAGING,
-        scopes=['https://www.googleapis.com/auth/cloud-platform'],
-    )
+    GS_CREDENTIALS_STAGING = None
+    if GS_CREDENTIALS_PATH_STAGING and Path(GS_CREDENTIALS_PATH_STAGING).is_file():
+        GS_CREDENTIALS_STAGING = service_account.Credentials.from_service_account_file(
+            GS_CREDENTIALS_PATH_STAGING,
+            scopes=['https://www.googleapis.com/auth/cloud-platform'],
+        )
     STORAGES = {
         'default': {
             'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
@@ -203,6 +206,18 @@ USE_TZ = True
 _DEFAULT_REDIS_HOST = 'client_staging_redis' if IS_STAGING else 'prisma_redis'
 REDIS_HOST = os.getenv('REDIS_HOST', _DEFAULT_REDIS_HOST)
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+_redis_cache_db = int(os.getenv('REDIS_CACHE_DB', '2'))
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv(
+            'REDIS_URL',
+            f'redis://{REDIS_HOST}:{REDIS_PORT}/{_redis_cache_db}',
+        ),
+    },
+}
+RATELIMIT_USE_CACHE = 'default'
 
 CHANNEL_LAYERS = {
     "default": {

@@ -19,9 +19,11 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Return current user's profile payload for the support app."""
         return Response(support_app_user_payload(request.user))
 
     def patch(self, request):
+        """Update email/push notification preference flags on the current user."""
         user = request.user
         email = request.data.get("allow_email_notifications")
         push = request.data.get("allow_push_notifications")

@@ -12,6 +12,11 @@ User = get_user_model()
 
 
 def resolve_support_app_role(user) -> str:
+    """
+    Derive the role string exposed to the support mobile app.
+
+    Prefers ``is_admin``, then ``SupportStaff.role``, else ``"support"``.
+    """
     if user.is_admin:
         return "admin"
     staff = SupportStaff.objects.filter(user=user).first()
@@ -66,6 +71,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
 
     def validate(self, attrs):
+        """
+        Normalize email, obtain JWT pair, and reject non-support accounts.
+
+        Raises:
+            ValidationError: Wrong password or account without support access.
+        """
         email = attrs.get(self.username_field)
         if email:
             normalized_email = email.strip().lower()
@@ -97,6 +108,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     @classmethod
     def get_token(cls, user):
+        """Embed ``role`` claim in refresh/access tokens for client-side RBAC."""
         token = super().get_token(user)
         if user.is_admin:
             token["role"] = "admin"

@@ -24,6 +24,7 @@ import {
   useRenewFleetSubscriptionMutation,
   useRemoveSupportBranchMutation,
   useRemoveSupportVehicleMutation,
+  useDeleteUserAccountMutation,
   useTerminateB2cSubscriptionMutation,
   useTerminateFleetSubscriptionMutation,
 } from "@/app/store/api/customerApi";
@@ -189,6 +190,26 @@ export function useCustomerFlow(customerId: string, segment: CustomerSegment) {
     [removeBranchMut, refetch, showError]
   );
 
+  const [deleteUserAccountMut, { isLoading: deleteUserAccountMutLoading }] =
+    useDeleteUserAccountMutation();
+
+  const deleteUserAccount = useCallback(
+    async (reason?: string) => {
+      if (segment !== "b2c" || !customerId) return;
+      try {
+        await deleteUserAccountMut({ user_id: customerId, reason }).unwrap();
+        await refetch();
+      } catch (e) {
+        showError("Could not delete account", getErrMsg(e));
+        throw e;
+      }
+    },
+    [segment, customerId, deleteUserAccountMut, refetch, showError],
+  );
+
+  const deleteUserAccountLoading =
+    segment === "b2c" ? deleteUserAccountMutLoading : false;
+
   return {
     customer,
     isLoading,
@@ -198,9 +219,11 @@ export function useCustomerFlow(customerId: string, segment: CustomerSegment) {
     renewSubscription,
     removeVehicle,
     removeBranch,
+    deleteUserAccount,
     terminateSubscriptionLoading: terminateFleetLoading || terminateB2cLoading,
     renewSubscriptionLoading: renewFleetLoading || renewB2cLoading,
     removeVehicleLoading,
     removeBranchLoading,
-  } as UseCustomerFlowResult<CustomerSegment>;
+    deleteUserAccountLoading,
+  } satisfies UseCustomerFlowResult<CustomerSegment>;
 }

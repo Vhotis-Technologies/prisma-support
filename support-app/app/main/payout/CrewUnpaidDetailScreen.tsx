@@ -70,11 +70,12 @@ export default function CrewUnpaidDetailScreen() {
     setAdminNotes,
     isSubmitting,
     requestRecordCrewPaymentMade,
+    requestCreateCrewPayout,
   } = usePayoutFlow();
 
   const bank = data?.bank_account;
   const hasBank = Boolean(bank?.has_bank_account);
-  const hasIban = Boolean(bank?.iban?.trim());
+  const ibanMasked = bank?.iban_masked?.trim() ?? "";
 
   const canPay = useMemo(
     () => Boolean(data && data.unpaid_job_count > 0 && data.unpaid_amount > 0),
@@ -147,17 +148,16 @@ export default function CrewUnpaidDetailScreen() {
                 {bank!.account_name}
               </StyledText>
             </View>
-            {hasIban ? (
+            {ibanMasked ? (
               <View style={styles.bankRow}>
                 <StyledText variant="labelMedium" color={muted}>
-                  IBAN
+                  IBAN (masked)
                 </StyledText>
                 <StyledText
                   variant="bodyLarge"
                   style={{ fontFamily: "BarlowMedium" }}
-                  selectable
                 >
-                  {bank!.iban}
+                  {ibanMasked}
                 </StyledText>
               </View>
             ) : (
@@ -215,12 +215,20 @@ export default function CrewUnpaidDetailScreen() {
 
       <View style={styles.actions}>
         {canPay ? (
-          <StyledButton
-            title={isSubmitting ? "Recording…" : "Payment made"}
-            onPress={() => requestRecordCrewPaymentMade(data, () => router.back())}
-            disabled={isSubmitting || isFetching}
-            variant="medium"
-          />
+          <>
+            <StyledButton
+              title={isSubmitting ? "Recording…" : "Payment made (record now)"}
+              onPress={() => requestRecordCrewPaymentMade(data, () => router.back())}
+              disabled={isSubmitting || isFetching}
+              variant="medium"
+            />
+            <StyledButton
+              title="Create pending payout"
+              onPress={() => requestCreateCrewPayout(data, () => router.back())}
+              disabled={isSubmitting || isFetching}
+              variant="tonal"
+            />
+          </>
         ) : null}
         <StyledButton
           title="Cancel"
