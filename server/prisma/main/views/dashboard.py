@@ -8,6 +8,7 @@ import logging
 
 import requests
 from django.conf import settings
+from main.util.proxy_helpers import internal_proxy_headers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -42,12 +43,7 @@ class SupportDashboardView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         url = f'{base}/api/v1/support/dashboard/get_dashboard_data/'
-        headers = {
-            'Accept': 'application/json',
-        }
-        key = getattr(settings, 'SUPPORT_INTERNAL_API_KEY', '') or ''
-        if key:
-            headers['X-Support-Internal-Key'] = key
+        headers = internal_proxy_headers(request)
         params = {k: request.query_params.get(k) for k in request.query_params}
         logger.info(
             'Dashboard proxy: requesting client GET %s with params=%s',

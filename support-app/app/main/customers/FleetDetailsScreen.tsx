@@ -67,7 +67,13 @@ export default function FleetDetailsScreen() {
     if (subscription.status === "expired") {
       return { label: "Expired", color: error };
     }
-    if (subscription.is_trial) {
+    if (subscription.status === "pending") {
+      return { label: "Pending payment", color: warning };
+    }
+    if (subscription.status === "past_due") {
+      return { label: "Past due", color: warning };
+    }
+    if (subscription.status === "trialing" || subscription.is_trial) {
       return { label: "Trial active", color: warning };
     }
     return { label: "Active", color: success };
@@ -247,7 +253,11 @@ export default function FleetDetailsScreen() {
           </StyledText>
         ) : null}
         <StyledText variant="bodySmall" color={muted}>
-          Subscription ends: {formatDateTime(subscription?.ends_at)}
+          {subscription?.is_trial ? "Current period ends" : "Renews / period ends"}:{" "}
+          {formatDateTime(subscription?.ends_at)}
+        </StyledText>
+        <StyledText variant="bodySmall" color={muted}>
+          Last paid: {subscription?.last_paid_at ? formatDateTime(subscription.last_paid_at) : "Never"}
         </StyledText>
         {subscription?.terminated_at ? (
           <StyledText variant="bodySmall" color={muted}>

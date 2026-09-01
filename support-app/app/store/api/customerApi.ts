@@ -50,6 +50,8 @@ function parseListRows(
     const t = o.type;
     if (segment === "b2c" && t === "b2c") {
       out.push(row as B2CListItem);
+    } else if (segment === "guests" && t === "b2c") {
+      out.push(row as B2CListItem);
     } else if (segment === "fleets" && t === "fleet") {
       out.push(row as FleetListItem);
     } else if (segment === "partners" && t === "partner") {

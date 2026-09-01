@@ -9,6 +9,7 @@ import logging
 import requests
 from django.conf import settings
 from django.http import HttpResponse
+from main.util.proxy_helpers import internal_proxy_headers
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
@@ -48,11 +49,7 @@ class SupportAccountingProxyView(APIView):
 
     def _headers(self) -> dict[str, str]:
         """Proxy headers with internal key (no actor email on accounting reads)."""
-        headers = {"Accept": "application/json"}
-        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
-        if key:
-            headers["X-Support-Internal-Key"] = key
-        return headers
+        return internal_proxy_headers()
 
     def _forward_json(self, resp: requests.Response) -> Response:
         """Pass through client JSON body and HTTP status to the support app."""
@@ -97,10 +94,8 @@ class SupportAccountingProxyView(APIView):
             )
         url = self._client_url(PDF_ACTION)
         # Client API uses DRF APIView; Accept application/pdf alone triggers NotAcceptable before the PDF handler runs.
-        headers = {"Accept": "*/*"}
-        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
-        if key:
-            headers["X-Support-Internal-Key"] = key
+        headers = internal_proxy_headers(request)
+        headers["Accept"] = "*/*"
         params = dict(request.query_params)
         try:
             resp = requests.get(url, headers=headers, params=params, timeout=120)

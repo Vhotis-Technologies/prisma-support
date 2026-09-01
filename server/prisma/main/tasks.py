@@ -8,10 +8,27 @@ from django.template.loader import render_to_string
 from main.util.graph_mail import send_mail as graph_send_mail
 
 
+def _password_reset_link(reset_token: str) -> str:
+    """SPA reset URL when ``SUPPORT_WEB_BASE_URL`` is set; else Django HTML form."""
+    web = (getattr(settings, "SUPPORT_WEB_BASE_URL", None) or "").strip().rstrip("/")
+    if web:
+        return f"{web}/reset-password?token={reset_token}"
+    base = (getattr(settings, "SUPPORT_API_URL", None) or "").strip().rstrip("/")
+    if not base:
+        base = (getattr(settings, "BASE_URL", None) or "").strip().rstrip("/")
+    if not base:
+        base = "https://support.prismavalet.com"
+    return f"{base}/api/v1/auth/web-reset-password/?token={reset_token}"
+
+
 @shared_task
 def send_password_reset_email(user_email, user_name, reset_token):
     """
-    Queue HTML password-reset email with web link to ``/api/v1/auth/web-reset-password/``.
+    Queue HTML password-reset email.
+
+    Prefers the support-web SPA (``SUPPORT_WEB_URL`` / ``SUPPORT_WEB_BASE_URL``)
+    at ``/reset-password?token=``. Falls back to Django
+    ``/api/v1/auth/web-reset-password/`` until that env is set.
 
     Args:
         user_email: Recipient address.
@@ -22,12 +39,7 @@ def send_password_reset_email(user_email, user_name, reset_token):
         str: Success or failure message for Celery logs.
     """
     subject = "Reset Your Prisma Support Password"
-    base = (getattr(settings, "SUPPORT_API_URL", None) or "").strip().rstrip("/")
-    if not base:
-        base = (getattr(settings, "BASE_URL", None) or "").strip().rstrip("/")
-    if not base:
-        base = "https://yourdomain.com"
-    web_reset_url = f"{base}/api/v1/auth/web-reset-password/?token={reset_token}"
+    web_reset_url = _password_reset_link(reset_token)
 
     html_message = render_to_string(
         "password_reset_email.html",

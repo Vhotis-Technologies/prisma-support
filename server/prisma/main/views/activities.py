@@ -7,6 +7,7 @@ import logging
 
 import requests
 from django.conf import settings
+from main.util.proxy_helpers import internal_proxy_headers
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -40,10 +41,7 @@ class SupportActivitiesProxyView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         url = f"{base}/api/v1/support/activities/get_activity_feed/"
-        headers = {"Accept": "application/json"}
-        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
-        if key:
-            headers["X-Support-Internal-Key"] = key
+        headers = internal_proxy_headers(request)
         params = {k: request.query_params.get(k) for k in request.query_params}
         logger.info(
             "Activities proxy: requesting client GET %s with params=%s",

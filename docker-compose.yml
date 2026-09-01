@@ -17,6 +17,21 @@ services:
     networks:
       - prisma_shared_net
 
+  support_web:
+    # Public SPA. Put Nginx Proxy Manager / DNS in front of host :8082.
+    build:
+      context: ./support-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://support.prismavalet.com}
+        VITE_BASE: ${VITE_BASE:-/}
+    container_name: support_web
+    ports:
+      - "8082:80"
+    networks:
+      - prisma_shared_net
+    restart: unless-stopped
+
   support_celery:
     build:
       context: ./server

@@ -29,6 +29,7 @@ type CustomerTab = CustomerSegment;
 
 const TABS: Array<{ key: CustomerTab; label: string }> = [
   { key: "b2c", label: "B2C" },
+  { key: "guests", label: "Guests" },
   { key: "fleets", label: "Fleets" },
   { key: "partners", label: "Partners" },
 ];
@@ -109,6 +110,7 @@ export default function CustomersScreen() {
   /** Rows actually rendered for this tab (same filters as each FlatList). */
   const rowsForActiveTab = useMemo(() => {
     if (activeTab === "b2c") return filteredRows.filter(isB2CListItem);
+    if (activeTab === "guests") return filteredRows.filter(isB2CListItem);
     if (activeTab === "fleets") return filteredRows.filter(isFleetListItem);
     return filteredRows.filter(isPartnerListItem);
   }, [activeTab, filteredRows]);
@@ -310,6 +312,7 @@ export default function CustomersScreen() {
             />
           </View>
           {activeTab === "b2c" ? b2cList : null}
+          {activeTab === "guests" ? b2cList : null}
           {activeTab === "fleets" ? fleetList : null}
           {activeTab === "partners" ? partnerList : null}
         </View>

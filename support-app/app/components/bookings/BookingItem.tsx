@@ -129,7 +129,11 @@ const BookingItem = ({ booking, onPress }: BookingItemComponentProps) => {
           {booking.client_name}
         </StyledText>
         <StyledText variant="labelSmall" color={textMuted}>
-          {isBulkListItem(booking) ? "Bulk order" : booking.client_type}
+          {isBulkListItem(booking)
+            ? "Bulk order"
+            : booking.is_guest
+              ? "Guest"
+              : booking.client_type}
         </StyledText>
       </View>
 

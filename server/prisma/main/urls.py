@@ -20,6 +20,7 @@ from main.views.password_reset import (
     ValidateResetTokenView,
     WebResetPasswordView,
 )
+from main.views.crew_chat import SupportCrewChatView, CrewChatBridgeView
 
 urlpatterns = [
     path("authentication/login/", CustomTokenObtainPairView.as_view(), name="login"),
@@ -88,5 +89,15 @@ urlpatterns = [
         "auth/web-reset-password/",
         WebResetPasswordView.as_view(),
         name="web_reset_password",
+    ),
+    path(
+        "crew-chat/<str:action>/",
+        SupportCrewChatView.as_view(),
+        name="crew_chat",
+    ),
+    path(
+        "crew-chat-bridge/<str:action>/",
+        CrewChatBridgeView.as_view(),
+        name="crew_chat_bridge",
     ),
 ]

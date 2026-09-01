@@ -8,6 +8,7 @@ import logging
 
 import requests
 from django.conf import settings
+from main.util.proxy_helpers import internal_proxy_headers
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -40,13 +41,7 @@ class SupportCrewProxyView(APIView):
 
     def _headers(self, content_type_json: bool = False) -> dict:
         """Internal key headers for detailer API (required for crew proxy)."""
-        headers = {"Accept": "application/json"}
-        if content_type_json:
-            headers["Content-Type"] = "application/json"
-        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
-        if key:
-            headers["X-Support-Internal-Key"] = key
-        return headers
+        return internal_proxy_headers(content_type_json=content_type_json)
 
     def _forward_response(self, resp: requests.Response) -> Response:
         """Mirror detailer JSON response to the support app."""

@@ -4,6 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import type { FleetCustomerRowProps } from "@/app/interfaces/CustomerInterface";
 import StyledText from "@/app/components/helpers/StyledText";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import {
+  supportSubscriptionListLabel,
+  supportSubscriptionListTone,
+} from "@/app/utils/methods";
 
 const FleetCustomerItem = ({ customer, onPress }: FleetCustomerRowProps) => {
   const backgroundColor = useThemeColor({}, "cards");
@@ -14,20 +18,14 @@ const FleetCustomerItem = ({ customer, onPress }: FleetCustomerRowProps) => {
   const warning = useThemeColor({}, "warning");
   const error = useThemeColor({}, "error");
 
-  const subscriptionTone =
-    customer.subscription.status === "active"
-      ? customer.subscription.is_trial
-        ? warning
-        : success
-      : error;
-  const subscriptionLabel =
-    customer.subscription.status === "active"
-      ? customer.subscription.is_trial
-        ? "Trial subscription"
-        : "Subscribed fleet"
-      : customer.subscription.status === "expired"
-      ? "Subscription expired"
-      : "Subscription terminated";
+  const muted = useThemeColor({ light: "#9E9E9E", dark: "#757575" }, "text");
+  const subscriptionTone = supportSubscriptionListTone(customer.subscription, {
+    success,
+    warning,
+    error,
+    muted,
+  });
+  const subscriptionLabel = supportSubscriptionListLabel(customer.subscription);
 
   return (
     <Pressable

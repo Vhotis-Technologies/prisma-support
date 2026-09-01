@@ -71,7 +71,13 @@ export default function B2CDetailsScreen() {
     if (subscription.status === "expired") {
       return { label: "Expired", color: error };
     }
-    if (subscription.is_trial) {
+    if (subscription.status === "pending") {
+      return { label: "Pending payment", color: warning };
+    }
+    if (subscription.status === "past_due") {
+      return { label: "Past due", color: warning };
+    }
+    if (subscription.status === "trialing" || subscription.is_trial) {
       return { label: "Trial active", color: warning };
     }
     return { label: "Active", color: success };
@@ -192,10 +198,22 @@ export default function B2CDetailsScreen() {
         </View>
       </View>
 
-      <ComplimentaryWashesCard complimentary={customer.subscription_complimentary} />
-      <LoyaltyCard loyalty={customer.loyalty} />
+      {customer.is_guest ? (
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+          <StyledText variant="titleMedium">Guest account</StyledText>
+          <StyledText variant="bodySmall" color={muted}>
+            This person booked without a password. They can use the emailed results link or claim a
+            full Prisma account to keep their vehicle and history.
+          </StyledText>
+        </View>
+      ) : null}
 
-      <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+      {!customer.is_guest ? (
+        <>
+          <ComplimentaryWashesCard complimentary={customer.subscription_complimentary} />
+          <LoyaltyCard loyalty={customer.loyalty} />
+
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
         <View style={styles.subscriptionHeader}>
           <StyledText variant="titleMedium">Subscription</StyledText>
           <View
@@ -237,7 +255,11 @@ export default function B2CDetailsScreen() {
           </StyledText>
         ) : null}
         <StyledText variant="bodySmall" color={muted}>
-          Subscription ends: {formatDateTime(subscription?.ends_at)}
+          {subscription?.is_trial ? "Current period ends" : "Renews / period ends"}:{" "}
+          {formatDateTime(subscription?.ends_at)}
+        </StyledText>
+        <StyledText variant="bodySmall" color={muted}>
+          Last paid: {subscription?.last_paid_at ? formatDateTime(subscription.last_paid_at) : "Never"}
         </StyledText>
         {subscription?.terminated_at ? (
           <StyledText variant="bodySmall" color={muted}>
@@ -298,6 +320,8 @@ export default function B2CDetailsScreen() {
           </Pressable>
         </View>
       </View>
+        </>
+      ) : null}
 
       <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
         <StyledText variant="titleMedium">Contact</StyledText>
@@ -354,14 +378,16 @@ export default function B2CDetailsScreen() {
         }
       />
 
-      <StyledButton
-        title={deleteUserAccountLoading ? "Deleting…" : "Delete account"}
-        icon={<Ionicons name="trash-outline" size={18} color="#fff" />}
-        onPress={onDeleteAccount}
-        disabled={deleteUserAccountLoading}
-        variant="tonal"
-        style={{ borderColor: error, borderWidth: 1 }}
-      />
+      {!customer.is_guest ? (
+        <StyledButton
+          title={deleteUserAccountLoading ? "Deleting…" : "Delete account"}
+          icon={<Ionicons name="trash-outline" size={18} color="#fff" />}
+          onPress={onDeleteAccount}
+          disabled={deleteUserAccountLoading}
+          variant="tonal"
+          style={{ borderColor: error, borderWidth: 1 }}
+        />
+      ) : null}
     </ScrollView>
   );
 }

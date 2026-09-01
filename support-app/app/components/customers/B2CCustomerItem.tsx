@@ -4,7 +4,11 @@ import { Ionicons } from "@expo/vector-icons";
 import type { B2CCustomerRowProps } from "@/app/interfaces/CustomerInterface";
 import StyledText from "@/app/components/helpers/StyledText";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { formatCurrency } from "@/app/utils/methods";
+import {
+  formatCurrency,
+  supportSubscriptionListLabel,
+  supportSubscriptionListTone,
+} from "@/app/utils/methods";
 
 const B2CCustomerItem = ({ customer, onPress }: B2CCustomerRowProps) => {
   const backgroundColor = useThemeColor({}, "cards");
@@ -16,20 +20,14 @@ const B2CCustomerItem = ({ customer, onPress }: B2CCustomerRowProps) => {
   const warning = useThemeColor({}, "warning");
   const error = useThemeColor({}, "error");
 
-  const subscriptionTone =
-    customer.subscription.status === "active"
-      ? customer.subscription.is_trial
-        ? warning
-        : success
-      : error;
-  const subscriptionLabel =
-    customer.subscription.status === "active"
-      ? customer.subscription.is_trial
-        ? "Trial subscription"
-        : "Subscribed"
-      : customer.subscription.status === "expired"
-        ? "Subscription expired"
-        : "Subscription terminated";
+  const muted = useThemeColor({ light: "#9E9E9E", dark: "#757575" }, "text");
+  const subscriptionTone = supportSubscriptionListTone(customer.subscription, {
+    success,
+    warning,
+    error,
+    muted,
+  });
+  const subscriptionLabel = supportSubscriptionListLabel(customer.subscription);
 
   return (
     <Pressable
@@ -52,25 +50,33 @@ const B2CCustomerItem = ({ customer, onPress }: B2CCustomerRowProps) => {
         </StyledText>
         <View style={[styles.pill, { borderColor: primary, backgroundColor: `${primary}18` }]}>
           <StyledText variant="labelSmall" style={{ color: primary, fontFamily: "BarlowMedium" }}>
-            {customer.loyalty_tier}
+            {customer.is_guest ? "Guest" : customer.loyalty_tier}
           </StyledText>
         </View>
       </View>
 
-      <View
-        style={[
-          styles.subscriptionPill,
-          { borderColor: subscriptionTone, backgroundColor: `${subscriptionTone}18` },
-        ]}
-      >
-        <Ionicons name="sparkles-outline" size={14} color={subscriptionTone} />
-        <StyledText variant="labelSmall" style={{ color: subscriptionTone, fontFamily: "BarlowMedium" }}>
-          {subscriptionLabel}
+      {customer.is_guest ? (
+        <StyledText variant="bodySmall" color={textMuted}>
+          Guest checkout · unclaimed account
         </StyledText>
-      </View>
-      <StyledText variant="bodySmall" color={textMuted} numberOfLines={1}>
-        {customer.subscription.subtype} · {customer.subscription.billing_type}
-      </StyledText>
+      ) : (
+        <>
+          <View
+            style={[
+              styles.subscriptionPill,
+              { borderColor: subscriptionTone, backgroundColor: `${subscriptionTone}18` },
+            ]}
+          >
+            <Ionicons name="sparkles-outline" size={14} color={subscriptionTone} />
+            <StyledText variant="labelSmall" style={{ color: subscriptionTone, fontFamily: "BarlowMedium" }}>
+              {subscriptionLabel}
+            </StyledText>
+          </View>
+          <StyledText variant="bodySmall" color={textMuted} numberOfLines={1}>
+            {customer.subscription.subtype} · {customer.subscription.billing_type}
+          </StyledText>
+        </>
+      )}
 
       <View style={styles.row}>
         <Ionicons name="mail-outline" size={16} color={iconColor} />

@@ -7,7 +7,7 @@ client_staging_redis in staging (shared across all staging stacks). Override via
 
 from pathlib import Path
 from datetime import timedelta
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 import os
 
 import dj_database_url
@@ -28,25 +28,11 @@ if _allowed_hosts_env:
     ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
 else:
     ALLOWED_HOSTS = ['*']
+if IS_STAGING and '*' not in ALLOWED_HOSTS:
+    for suffix in ('.ngrok-free.app', '.ngrok.io', '.ngrok.app'):
+        if suffix not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(suffix)
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app',
-    'https://support.prismavalet.com',
-]
-ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app',
-    'https://support.prismavalet.com',
-]
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app', 
-    'https://support.prismavalet.com',
-]
 CORS_ALLOW_CREDENTIALS = True
 
 USE_X_FORWARDED_HOST = True
@@ -101,6 +87,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'prisma.wsgi.application'
+ASGI_APPLICATION = 'prisma.asgi.application'
 
 # DATABASE_URL or POSTGRES_* required (Postgres only).
 
@@ -116,10 +103,15 @@ def _resolve_database_url():
     port = os.getenv('POSTGRES_PORT', '5432')
     db = os.getenv('POSTGRES_DB')
     if user and password and host and db:
-        return (
+        url = (
             f'postgresql://{quote_plus(user)}:{quote_plus(password)}'
             f'@{host}:{port}/{db}'
         )
+        sslmode = os.getenv('POSTGRES_SSLMODE', '').strip()
+        if sslmode:
+            sep = '&' if '?' in url else '?'
+            url = f'{url}{sep}sslmode={quote_plus(sslmode)}'
+        return url
     return ''
 
 
@@ -207,6 +199,7 @@ _DEFAULT_REDIS_HOST = 'client_staging_redis' if IS_STAGING else 'prisma_redis'
 REDIS_HOST = os.getenv('REDIS_HOST', _DEFAULT_REDIS_HOST)
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 _redis_cache_db = int(os.getenv('REDIS_CACHE_DB', '2'))
+_redis_channel_db = int(os.getenv('REDIS_CHANNEL_DB', '9'))
 
 CACHES = {
     'default': {
@@ -224,7 +217,13 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [
-                f'redis://{REDIS_HOST}:{REDIS_PORT}',
+                {
+                    "address": f"redis://{REDIS_HOST}:{REDIS_PORT}/{_redis_channel_db}",
+                    # Avoid idle socket read timeouts that drop websocket consumers.
+                    "socket_timeout": None,
+                    "socket_connect_timeout": 10,
+                    "retry_on_timeout": True,
+                },
             ],
         },
     },
@@ -314,17 +313,134 @@ SIMPLE_JWT = {
 
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
-else:
-    _cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors.split(',') if o.strip()]
 
 
-SUPPORT_API_URL = os.getenv('SUPPORT_API_URL', 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/support')
-# Optional fallback for password-reset email links if SUPPORT_API_URL is unset in an environment.
-BASE_URL = os.getenv('BASE_URL', '').strip()
-DETAILER_API_URL = os.getenv('DETAILER_API_URL', 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/detailer')
-_default_client_api = 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/client'
-CLIENT_API_URL = os.getenv('CLIENT_API_URL', _default_client_api or 'https://450e-2a02-8084-c81-a480-c018-9c4e-4107-9d95.ngrok-free.app/client').strip()
+def _origin_only(value: str) -> str:
+    parsed = urlparse(value.strip())
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return value.strip().rstrip("/")
+
+
+def _split_origins(raw: str | None, fallback: list[str]) -> list[str]:
+    sources = raw.split(",") if raw and raw.strip() else fallback
+    seen: set[str] = set()
+    out: list[str] = []
+    for origin in sources:
+        value = _origin_only(origin) if isinstance(origin, str) else ""
+        if value and value not in seen:
+            seen.add(value)
+            out.append(value)
+    return out
+
+
+def _append_unique(dest: list[str], values: list[str]) -> None:
+    for value in values:
+        if value and value not in dest:
+            dest.append(value)
+
+
+_STAGING_NGROK_CSRF_ORIGINS = [
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.io",
+    "https://*.ngrok.app",
+]
+_STAGING_NGROK_CORS_REGEXES = [
+    r"^https://[\w-]+\.ngrok-free\.app$",
+    r"^https://[\w-]+\.ngrok\.io$",
+    r"^https://[\w-]+\.ngrok\.app$",
+]
+
+
+def _strip_url(*values: str | None) -> str:
+    for value in values:
+        stripped = (value or "").strip().rstrip("/")
+        if stripped:
+            return stripped
+    return ""
+
+
+def _public_project_url(env_value: str | None, path_segment: str) -> str:
+    """Prefer an explicit public URL; ignore Docker hostnames and fall back to BASE_URL."""
+    from urllib.parse import urlparse
+
+    raw = (env_value or "").strip() or None
+    if raw:
+        host = (urlparse(raw).hostname or "")
+        if host.endswith("_staging_server"):
+            raw = None
+    if raw:
+        return raw.rstrip("/")
+    base = (os.getenv("BASE_URL") or "").strip()
+    parsed = urlparse(base)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}/{path_segment.strip('/')}"
+    return ""
+
+
+_NGROK = "https://bat-useful-penguin.ngrok-free.app"
+_DEFAULT_SUPPORT = f"{_NGROK}/support" if IS_STAGING else "https://support.prismavalet.com"
+_DEFAULT_CLIENT = f"{_NGROK}/client" if IS_STAGING else "https://client.prismavalet.com"
+_DEFAULT_CREW = f"{_NGROK}/detailer" if IS_STAGING else "https://crew.prismavalet.com"
+
+BASE_URL = _strip_url(
+    os.getenv("BASE_URL"),
+    os.getenv("SUPPORT_API_URL"),
+    os.getenv("SUPPORT_APP_URL"),
+) or _DEFAULT_SUPPORT
+SUPPORT_API_URL = BASE_URL
+SUPPORT_WEB_BASE_URL = _strip_url(
+    os.getenv("SUPPORT_WEB_URL"),
+    os.getenv("SUPPORT_WEB_BASE_URL"),
+)
+CLIENT_API_URL = _public_project_url(
+    os.getenv("CLIENT_API_URL") or os.getenv("CLIENT_APP_URL"),
+    "client",
+) or _DEFAULT_CLIENT
+DETAILER_API_URL = _public_project_url(
+    os.getenv("DETAILER_API_URL") or os.getenv("DETAILER_APP_URL"),
+    "detailer",
+) or _DEFAULT_CREW
+
+CORS_ALLOWED_ORIGINS = _split_origins(
+    os.getenv("CORS_ALLOWED_ORIGINS"),
+    [
+        _origin_only(BASE_URL),
+        _origin_only(CLIENT_API_URL),
+        _origin_only(DETAILER_API_URL),
+        "https://prismavalet.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:8082",
+        "http://127.0.0.1:8082",
+        "http://localhost:8382",
+        "http://127.0.0.1:8382",
+    ],
+)
+if SUPPORT_WEB_BASE_URL:
+    _web_origin = _origin_only(SUPPORT_WEB_BASE_URL)
+    if _web_origin and _web_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_web_origin)
+CSRF_TRUSTED_ORIGINS = _split_origins(
+    os.getenv("CSRF_TRUSTED_ORIGINS"),
+    CORS_ALLOWED_ORIGINS,
+)
+_append_unique(
+    CSRF_TRUSTED_ORIGINS,
+    [
+        _origin_only(BASE_URL),
+        _origin_only(CLIENT_API_URL),
+        _origin_only(DETAILER_API_URL),
+        _origin_only(SUPPORT_WEB_BASE_URL) if SUPPORT_WEB_BASE_URL else "",
+    ],
+)
+if IS_STAGING:
+    _append_unique(CSRF_TRUSTED_ORIGINS, _STAGING_NGROK_CSRF_ORIGINS)
+    CORS_ALLOWED_ORIGIN_REGEXES = list(_STAGING_NGROK_CORS_REGEXES)
 
 # Must match client SUPPORT_INTERNAL_API_KEY for proxy calls to client support dashboard.
-SUPPORT_INTERNAL_API_KEY = (os.getenv('SUPPORT_INTERNAL_API_KEY') or '').strip()
+SUPPORT_INTERNAL_API_KEY = (os.getenv("SUPPORT_INTERNAL_API_KEY") or "").strip()

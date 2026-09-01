@@ -82,6 +82,13 @@ const MainLayout = () => {
             }}
           />
           <Drawer.Screen
+            name="crew-chat"
+            options={{
+              title: "Crew Chats",
+              headerTitle: "Crew Chats",
+            }}
+          />
+          <Drawer.Screen
             name="customers"
             options={{
               title: "Customers",

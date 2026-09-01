@@ -10,6 +10,7 @@ import logging
 
 import requests
 from django.conf import settings
+from main.util.proxy_helpers import internal_proxy_headers
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -40,6 +41,7 @@ PATCH_ACTIONS = frozenset(
         "reassign_bulk_order",
     }
 )
+POST_ACTIONS = frozenset({"resend_guest_results_email"})
 
 
 class SupportBookingsProxyView(APIView):
@@ -56,13 +58,7 @@ class SupportBookingsProxyView(APIView):
 
     def _headers(self, content_type_json: bool = False) -> dict:
         """Internal key + optional JSON content type for PATCH bodies."""
-        headers = {"Accept": "application/json"}
-        if content_type_json:
-            headers["Content-Type"] = "application/json"
-        key = getattr(settings, "SUPPORT_INTERNAL_API_KEY", "") or ""
-        if key:
-            headers["X-Support-Internal-Key"] = key
-        return headers
+        return internal_proxy_headers(content_type_json=content_type_json)
 
     def _forward_response(self, resp: requests.Response) -> Response:
         """Mirror client response JSON and status code to the support app."""
@@ -119,6 +115,32 @@ class SupportBookingsProxyView(APIView):
             )
         except requests.RequestException as exc:
             logger.warning("Support bookings proxy PATCH failed: %s", exc)
+            return Response(
+                {"error": "Client API unavailable", "detail": str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return self._forward_response(resp)
+
+    def post(self, request, action, *args, **kwargs):
+        """Proxy guest-specific POST actions (e.g. resend results email)."""
+        if action not in POST_ACTIONS:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+        base = (settings.CLIENT_API_URL or "").rstrip("/")
+        if not base:
+            return Response(
+                {"error": "CLIENT_API_URL is not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        url = self._client_url(action)
+        try:
+            resp = requests.post(
+                url,
+                json=request.data,
+                headers=self._headers(content_type_json=True),
+                timeout=60,
+            )
+        except requests.RequestException as exc:
+            logger.warning("Support bookings proxy POST failed: %s", exc)
             return Response(
                 {"error": "Client API unavailable", "detail": str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,

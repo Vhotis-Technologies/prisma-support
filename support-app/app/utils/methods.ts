@@ -93,6 +93,39 @@ export function formatSupportGender(code: string | null | undefined): string {
   return map[code] ?? code;
 }
 
+export function supportSubscriptionListLabel(sub: {
+  status?: string;
+  is_trial?: boolean;
+  subtype?: string;
+}): string {
+  if (!sub?.subtype || sub.subtype === "No plan") return "No subscription";
+  if (sub.status === "terminated") return "Subscription terminated";
+  if (sub.status === "expired") return "Subscription expired";
+  if (sub.status === "pending") return "Pending payment";
+  if (sub.status === "past_due") return "Past due";
+  if (sub.status === "trialing" || sub.is_trial) return "Trial subscription";
+  if (sub.status === "active") return "Subscribed";
+  return sub.status ? sub.status.replace(/_/g, " ") : "No subscription";
+}
+
+export function supportSubscriptionListTone(
+  sub: { status?: string; is_trial?: boolean; subtype?: string },
+  colors: { success: string; warning: string; error: string; muted: string },
+): string {
+  if (!sub?.subtype || sub.subtype === "No plan") return colors.muted;
+  if (sub.status === "terminated" || sub.status === "expired") return colors.error;
+  if (
+    sub.status === "pending" ||
+    sub.status === "past_due" ||
+    sub.status === "trialing" ||
+    sub.is_trial
+  ) {
+    return colors.warning;
+  }
+  if (sub.status === "active") return colors.success;
+  return colors.muted;
+}
+
 export function formatSupportDob(isoDate: string | null | undefined): string {
   if (!isoDate?.trim()) return "—";
   try {
@@ -105,6 +138,24 @@ export function formatSupportDob(isoDate: string | null | undefined): string {
     });
   } catch {
     return isoDate;
+  }
+}
+
+export function guestAccessLabel(
+  access: { status?: string; expires_at?: string | null } | null | undefined,
+): string {
+  if (!access) return "No link issued";
+  switch (access.status) {
+    case "active":
+      return access.expires_at
+        ? `Active until ${new Date(access.expires_at).toLocaleString("en-GB")}`
+        : "Active";
+    case "expired":
+      return "Expired";
+    case "revoked":
+      return "Revoked";
+    default:
+      return "No link issued";
   }
 }
 

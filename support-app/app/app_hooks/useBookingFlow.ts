@@ -16,6 +16,7 @@ import {
   useCancelSupportBookingMutation,
   useRescheduleIntentMutation,
   useRescheduleSupportBookingMutation,
+  useResendGuestResultsEmailMutation,
 } from "@/app/store/api/bookingApi";
 import { useAlertContext } from "@/app/contexts/AlertContext";
 
@@ -59,6 +60,8 @@ export function useBookingFlow(bookingId: string) {
   const [rescheduleIntent, { isLoading: intentLoading }] = useRescheduleIntentMutation();
   const [rescheduleBooking, { isLoading: rescheduleSubmitting }] =
     useRescheduleSupportBookingMutation();
+  const [resendGuestResultsEmail, { isLoading: resendGuestEmailLoading }] =
+    useResendGuestResultsEmailMutation();
 
   const showError = useCallback(
     (title: string, message: string) => {
@@ -263,6 +266,44 @@ export function useBookingFlow(bookingId: string) {
     });
   }, [setAlertConfig, setIsVisible]);
 
+  const requestResendGuestEmail = useCallback(() => {
+    if (!booking?.is_guest) return;
+    setAlertConfig({
+      isVisible: true,
+      title: "Resend guest portal email",
+      message: `Send a fresh results link to ${booking.client_email}? Previous links for this booking will stop working.`,
+      type: "warning",
+      confirmLabel: "Send email",
+      onConfirm: () => {
+        setIsVisible(false);
+        void (async () => {
+          try {
+            const result = await resendGuestResultsEmail(bookingId).unwrap();
+            setAlertConfig({
+              isVisible: true,
+              title: "Email queued",
+              message: result.message || "Guest portal email queued.",
+              type: "success",
+              confirmLabel: "OK",
+              onConfirm: () => setIsVisible(false),
+            });
+            refetch();
+          } catch (e: unknown) {
+            showError("Error", getErrMsg(e));
+          }
+        })();
+      },
+    });
+  }, [
+    booking,
+    bookingId,
+    refetch,
+    resendGuestResultsEmail,
+    setAlertConfig,
+    setIsVisible,
+    showError,
+  ]);
+
   const imageTabs = useMemo(
     () =>
       [
@@ -313,5 +354,7 @@ export function useBookingFlow(bookingId: string) {
     cancelLoading,
     requestCancelBooking,
     onEditDetails,
+    requestResendGuestEmail,
+    resendGuestEmailLoading,
   };
 }

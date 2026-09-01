@@ -290,6 +290,21 @@ const bookingApi = createApi({
         { type: "SupportBooking", id: `bulk-${bulkOrderId}` },
       ],
     }),
+
+    resendGuestResultsEmail: builder.mutation<
+      { message?: string; email_kind?: string },
+      string
+    >({
+      query: (bookingId) => ({
+        url: "/api/v1/bookings/resend_guest_results_email/",
+        method: "POST",
+        data: { booking_id: bookingId },
+      }),
+      invalidatesTags: (_result, _error, bookingId) => [
+        { type: "SupportBookings", id: "LIST" },
+        { type: "SupportBooking", id: bookingId },
+      ],
+    }),
   }),
 });
 
@@ -309,5 +324,6 @@ export const {
   useGetReassignmentHistoryQuery,
   useReassignSupportBookingMutation,
   useReassignSupportBulkOrderMutation,
+  useResendGuestResultsEmailMutation,
 } = bookingApi;
 export default bookingApi;

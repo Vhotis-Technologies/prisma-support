@@ -1,6 +1,7 @@
 # Support — standalone staging. Start client staging first (shared client_staging_redis).
 # docker compose -f docker-compose-staging.yml up -d --build
-# HTTP: client_staging_nginx on :8080 — routes /support/ to support_staging_server.
+# HTTP: client_staging_nginx — /support/ → API, /desk/ → support-web SPA.
+# Direct SPA: host :8382 (Vite base /desk/, so prefer /desk/ or the nginx path).
 
 name: prisma_support_staging
 
@@ -8,6 +9,7 @@ services:
   support_postgres:
     image: postgres:16-alpine
     container_name: support_postgres_staging
+    restart: unless-stopped
     env_file:
       - .env.staging
     volumes:
@@ -36,6 +38,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=prisma.settings
       - PRISMA_ENV=staging
+    command: daphne -b 0.0.0.0 -p 8000 prisma.asgi:application
     depends_on:
       support_postgres:
         condition: service_healthy
@@ -46,6 +49,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # SPA at host :8382 and, via client_staging_nginx, https://<ngrok>/desk/
+  support_staging_web:
+    build:
+      context: ./support-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /support
+        VITE_WS_URL: wss://bat-useful-penguin.ngrok-free.app/support
+        VITE_BASE: /desk/
+    container_name: support_staging_web
+    ports:
+      - "8382:80"
+    networks:
+      - prisma_shared_net
+    restart: unless-stopped
 
   support_staging_celery:
     build:

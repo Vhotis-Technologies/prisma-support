@@ -1,7 +1,7 @@
 export type CustomerType = "b2c" | "fleet" | "partner";
 
 /** Support app customer list tab / `get_customers_list` segment query param. */
-export type CustomerSegment = "b2c" | "fleets" | "partners";
+export type CustomerSegment = "b2c" | "guests" | "fleets" | "partners";
 
 export interface CustomerAddress {
   address: string;
@@ -26,6 +26,9 @@ export interface CustomerBase {
 
 export interface B2CListItem extends CustomerBase {
   type: "b2c";
+  is_guest?: boolean;
+  account_status?: "guest" | "member";
+  can_claim?: boolean;
   loyalty_tier: string;
   total_spend: number;
   total_bookings: number;
@@ -79,7 +82,13 @@ export interface FleetListItem extends CustomerBase {
   subscription: FleetSubscription;
 }
 
-export type FleetSubscriptionStatus = "active" | "terminated" | "expired";
+export type FleetSubscriptionStatus =
+  | "active"
+  | "terminated"
+  | "expired"
+  | "trialing"
+  | "pending"
+  | "past_due";
 
 /** e.g. "basic", "pro", "enterprise" — free-form label from backend */
 export type FleetBillingType = "monthly" | "yearly";
@@ -93,6 +102,7 @@ export interface FleetSubscription {
   is_trial: boolean;
   /** Present when `is_trial` is true — when the trial period ends */
   trial_ends_at?: string;
+  last_paid_at?: string | null;
   status: FleetSubscriptionStatus;
   terminated_at?: string;
 }

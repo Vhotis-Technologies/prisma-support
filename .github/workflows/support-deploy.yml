@@ -140,8 +140,10 @@ jobs:
         run: |
           echo "Waiting for server to start..."
           sleep 30
-          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8002/ || \
-          echo "Server may still be starting, but deployment completed successfully"
+          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8002/health || \
+          echo "API may still be starting, but deployment completed successfully"
+          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8082/health || \
+          echo "Support web may still be starting, but deployment completed successfully"
 
   deploy-backend-staging:
     if: github.ref == 'refs/heads/staging'
@@ -184,5 +186,7 @@ jobs:
         run: |
           echo "Waiting for staging server..."
           sleep 30
-          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8300/ || \
-          echo "Staging server may still be starting, but deployment completed successfully"
+          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8300/health || \
+          echo "Staging API may still be starting, but deployment completed successfully"
+          curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.DO_HOST }}:8382/health || \
+          echo "Staging support web may still be starting, but deployment completed successfully"

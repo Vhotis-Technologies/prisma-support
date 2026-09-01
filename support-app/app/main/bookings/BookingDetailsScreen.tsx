@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import StyledText from "@/app/components/helpers/StyledText";
 import type {
@@ -22,7 +22,7 @@ import BookingImageGalleryTab from "@/app/components/bookings/BookingImageGaller
 import ReassignCrewModal from "@/app/components/bookings/ReassignCrewModal";
 import ModalServices from "@/app/components/helpers/ModalServices";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { formatCurrency } from "@/app/utils/methods";
+import { formatCurrency, guestAccessLabel } from "@/app/utils/methods";
 import { useBookingFlow } from "@/app/app_hooks/useBookingFlow";
 import { useReassignFlow } from "@/app/app_hooks/useReassignFlow";
 
@@ -81,6 +81,7 @@ function statusBadgeColor(
 }
 
 export default function BookingDetailsScreen() {
+  const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id: string | string[] }>();
   const bookingId = typeof idParam === "string" ? idParam : idParam?.[0] ?? "";
   const insets = useSafeAreaInsets();
@@ -136,6 +137,8 @@ export default function BookingDetailsScreen() {
     cancelLoading,
     requestCancelBooking,
     onEditDetails,
+    requestResendGuestEmail,
+    resendGuestEmailLoading,
   } = flow;
 
   const badgeColor = booking
@@ -339,9 +342,72 @@ export default function BookingDetailsScreen() {
         ) : null}
       </View>
 
+      {booking.is_guest ? (
+        <Section title="Guest checkout" icon="ticket-outline" borderColor={borderColor}>
+          <StyledText variant="bodySmall" color={muted} style={styles.blockLabel}>
+            Booked without a password. The client uses the emailed link for photos and notes, or can
+            claim a full account later.
+          </StyledText>
+          <DetailRow
+            label="Portal link"
+            value={guestAccessLabel(booking.guest_access)}
+            muted={muted}
+          />
+          {booking.can_claim ? (
+            <DetailRow label="Account" value="Unclaimed" muted={muted} />
+          ) : null}
+          {booking.client_user_id ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/main/customers/B2CDetailsScreen",
+                  params: { id: booking.client_user_id },
+                })
+              }
+              style={({ pressed }) => [
+                styles.imagesBtn,
+                { borderColor: primary, opacity: pressed ? 0.85 : 1, marginTop: 8 },
+              ]}
+            >
+              <Ionicons name="person-outline" size={18} color={primary} />
+              <StyledText variant="labelLarge" style={{ color: primary, fontFamily: "BarlowMedium" }}>
+                View customer record
+              </StyledText>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={requestResendGuestEmail}
+            disabled={resendGuestEmailLoading}
+            style={({ pressed }) => [
+              styles.imagesBtn,
+              {
+                borderColor: tint,
+                opacity: pressed ? 0.85 : resendGuestEmailLoading ? 0.5 : 1,
+                marginTop: 8,
+              },
+            ]}
+          >
+            {resendGuestEmailLoading ? (
+              <ActivityIndicator color={tint} />
+            ) : (
+              <>
+                <Ionicons name="mail-outline" size={18} color={tint} />
+                <StyledText variant="labelLarge" style={{ color: tint, fontFamily: "BarlowMedium" }}>
+                  Resend portal email
+                </StyledText>
+              </>
+            )}
+          </Pressable>
+        </Section>
+      ) : null}
+
       <Section title="Client" icon="person-outline" borderColor={borderColor}>
         <DetailRow label="Name" value={booking.client_name} muted={muted} />
-        <DetailRow label="Type" value={booking.client_type} muted={muted} />
+        <DetailRow
+          label="Type"
+          value={booking.is_guest ? `${booking.client_type} (Guest)` : booking.client_type}
+          muted={muted}
+        />
         <PressableRow
           label="Email"
           value={booking.client_email}
@@ -459,23 +525,31 @@ export default function BookingDetailsScreen() {
       </Section>
 
       <Section title="Loyalty" icon="ribbon-outline" borderColor={borderColor}>
-        <DetailRow label="Tier" value={booking.loyalty_tier} muted={muted} />
-        <StyledText variant="labelMedium" color={muted} style={styles.blockLabel}>
-          Active benefits
-        </StyledText>
-        {booking.loyalty_benefits.length === 0 ? (
+        {booking.is_guest ? (
           <StyledText variant="bodyMedium" color={muted}>
-            None listed.
+            Guest checkout — loyalty benefits apply only after the client claims an account.
           </StyledText>
         ) : (
-          booking.loyalty_benefits.map((b) => (
-            <View key={b} style={styles.addonRow}>
-              <Ionicons name="star-outline" size={16} color={tint} />
-              <StyledText variant="bodyMedium" style={styles.addonText}>
-                {b}
+          <>
+            <DetailRow label="Tier" value={booking.loyalty_tier} muted={muted} />
+            <StyledText variant="labelMedium" color={muted} style={styles.blockLabel}>
+              Active benefits
+            </StyledText>
+            {booking.loyalty_benefits.length === 0 ? (
+              <StyledText variant="bodyMedium" color={muted}>
+                None listed.
               </StyledText>
-            </View>
-          ))
+            ) : (
+              booking.loyalty_benefits.map((b) => (
+                <View key={b} style={styles.addonRow}>
+                  <Ionicons name="star-outline" size={16} color={tint} />
+                  <StyledText variant="bodyMedium" style={styles.addonText}>
+                    {b}
+                  </StyledText>
+                </View>
+              ))
+            )}
+          </>
         )}
       </Section>
 

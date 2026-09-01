@@ -16,7 +16,16 @@ export interface BookingItemProps {
   status: BookingStatus;
   client_name: string;
   client_type: string;
+  is_guest?: boolean;
+  client_user_id?: string;
+  account_status?: "guest" | "member";
 }
+
+export type GuestAccessSnapshot = {
+  status: "active" | "expired" | "revoked" | "none";
+  expires_at: string | null;
+  last_used_at: string | null;
+};
 
 /** Single-appointment row from support bookings API. */
 export interface AppointmentListItem extends BookingItemProps {
@@ -34,6 +43,9 @@ export interface BulkOrderListItem {
   status: BookingStatus;
   client_name: string;
   client_type: string;
+  is_guest?: boolean;
+  client_user_id?: string;
+  account_status?: "guest" | "member";
   vehicle_count: number;
   total_amount: number;
 }
@@ -108,6 +120,8 @@ export interface BookingDetails extends BookingItemProps {
   start_time_hhmm?: string;
   client_email: string;
   client_phone: string;
+  can_claim?: boolean;
+  guest_access?: GuestAccessSnapshot | null;
   service_type: string;
   valet_type: string;
   service_description?: string;
