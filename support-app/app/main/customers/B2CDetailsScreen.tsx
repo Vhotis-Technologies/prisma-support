@@ -17,6 +17,7 @@ import type { FleetSubscription } from "@/app/interfaces/CustomerInterface";
 import StyledButton from "@/app/components/helpers/StyledButton";
 import LoyaltyCard from "@/app/components/customers/LoyaltyCard";
 import ComplimentaryWashesCard from "@/app/components/customers/ComplimentaryWashesCard";
+import PersonalDataExportCard from "@/app/components/customers/PersonalDataExportCard";
 
 export default function B2CDetailsScreen() {
   const router = useRouter();
@@ -378,6 +379,12 @@ export default function B2CDetailsScreen() {
         }
       />
 
+      <PersonalDataExportCard
+        entityType="b2c"
+        entityId={customer.id}
+        defaultEmail={customer.contact.email}
+      />
+
       {!customer.is_guest ? (
         <StyledButton
           title={deleteUserAccountLoading ? "Deleting…" : "Delete account"}
@@ -388,6 +395,7 @@ export default function B2CDetailsScreen() {
           style={{ borderColor: error, borderWidth: 1 }}
         />
       ) : null}
+
     </ScrollView>
   );
 }

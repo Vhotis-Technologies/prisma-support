@@ -14,11 +14,11 @@ module.exports = ({ config }) => {
       websockets_url: "wss://support.prismavalet.com/ws",
     },
     staging: {
-      support_app_url: "https://bat-useful-penguin.ngrok-free.app/support",
-      detailer_app_url: "https://bat-useful-penguin.ngrok-free.app/detailer",
-      customer_app_url: "https://bat-useful-penguin.ngrok-free.app/client",
-      websocket_url: "wss://bat-useful-penguin.ngrok-free.app/support/ws/support/",
-      websockets_url: "wss://bat-useful-penguin.ngrok-free.app/support/ws",
+      support_app_url: "https://staging.support.prismavalet.com",
+      detailer_app_url: "https://staging.crew.prismavalet.com",
+      customer_app_url: "https://staging.client.prismavalet.com",
+      websocket_url: "wss://staging.support.prismavalet.com/ws/support/",
+      websockets_url: "wss://staging.support.prismavalet.com/ws",
     },
   };
 

@@ -179,7 +179,7 @@ export function useCustomerDetailFlow(
           });
       },
     });
-  }, [customer, customerId, refetch, segment]);
+  }, [customer, customerId, onDeleted, segment]);
 
   const requestDeleteAccount = useCallback(() => {
     if (segment !== "b2c" || !customer) return;
@@ -261,6 +261,7 @@ export function useCustomerDetailFlow(
     refetch,
     notice,
     clearNotice: () => setNotice(null),
+    showNotice: setNotice,
     confirm,
     confirmBusy,
     clearConfirm,

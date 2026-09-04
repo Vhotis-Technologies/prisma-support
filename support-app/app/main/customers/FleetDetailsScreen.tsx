@@ -15,6 +15,7 @@ import { useAlertContext } from "@/app/contexts/AlertContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { formatCurrency } from "@/app/utils/methods";
 import type { FleetSubscription } from "@/app/interfaces/CustomerInterface";
+import PersonalDataExportCard from "@/app/components/customers/PersonalDataExportCard";
 
 export default function FleetDetailsScreen() {
   const router = useRouter();
@@ -385,6 +386,12 @@ export default function FleetDetailsScreen() {
           </StyledText>
         </View>
       </View>
+
+      <PersonalDataExportCard
+        entityType="fleet"
+        entityId={fleet.id}
+        defaultEmail={fleet.contact.email}
+      />
     </ScrollView>
   );
 }

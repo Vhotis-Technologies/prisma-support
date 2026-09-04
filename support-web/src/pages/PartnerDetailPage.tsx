@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PersonalDataExportPanel from "../components/PersonalDataExportPanel";
 import StatusBanner from "../components/StatusBanner";
 import VehicleList from "../components/VehicleList";
 import { useCustomerDetailFlow } from "../app-hooks/useCustomerDetailFlow";
@@ -15,7 +16,8 @@ import {
 export default function PartnerDetailPage() {
   const { partnerId = "" } = useParams<{ partnerId: string }>();
   const flow = useCustomerDetailFlow(partnerId, "partners");
-  const { partner, isLoading, isError, errorMessage, notice, clearNotice, referredUsers } = flow;
+  const { partner, isLoading, isError, errorMessage, notice, clearNotice, showNotice, referredUsers } =
+    flow;
 
   if (!partnerId || (isError && !isLoading && !partner)) {
     return (
@@ -57,6 +59,13 @@ export default function PartnerDetailPage() {
       </section>
 
       <StatusBanner notice={notice} onDismiss={clearNotice} />
+
+      <PersonalDataExportPanel
+        entityType="partner"
+        entityId={partner.id}
+        defaultEmail={partner.contact.email}
+        onNotice={showNotice}
+      />
 
       <section className="card">
         <div className="card-row">

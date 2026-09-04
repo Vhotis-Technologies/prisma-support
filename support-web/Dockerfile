@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
-# Baked at build time. Staging nginx serves the desk at /desk/ against API /support.
+# Baked at build time. Staging desk: staging.desk.prismavalet.com → API staging.support.prismavalet.com.
 ARG VITE_API_URL=http://localhost:8002
 ARG VITE_WS_URL=ws://localhost:8002
 ARG VITE_BASE=/

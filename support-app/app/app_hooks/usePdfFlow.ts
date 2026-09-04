@@ -55,7 +55,6 @@ export function usePdfFlow() {
         axios.get<ArrayBuffer>(url, {
           responseType: "arraybuffer",
           headers: {
-            // DRF APIView only negotiates JSON-like renderers; */* lets negotiation succeed while we still read PDF bytes from HttpResponse.
             Accept: "*/*",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
@@ -107,5 +106,81 @@ export function usePdfFlow() {
     [],
   );
 
-  return { downloadAccountingMonthPdf, pdfBusy };
+  const downloadUserDataPdf = useCallback(
+    async (entityType: "b2c" | "fleet" | "partner", entityId: string) => {
+      const base = API_CONFIG.supportAppUrl?.replace(/\/$/, "") ?? "";
+      if (!base) {
+        throw new Error("Support API URL is not configured");
+      }
+
+      const url = `${base}/api/v1/customers/export_user_data_pdf/`;
+
+      let access = await SecureStore.getItemAsync("access");
+
+      const fetchPdf = async (token: string | null) =>
+        axios.post<ArrayBuffer>(
+          url,
+          { entity_type: entityType, entity_id: entityId },
+          {
+            responseType: "arraybuffer",
+            headers: {
+              Accept: "*/*",
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            validateStatus: () => true,
+          },
+        );
+
+      setPdfBusy(true);
+      try {
+        let res = await fetchPdf(access);
+        if (res.status === 401) {
+          access = await refreshAccessToken();
+          if (!access) {
+            throw new Error("Session expired; please sign in again.");
+          }
+          res = await fetchPdf(access);
+        }
+
+        if (res.status !== 200) {
+          let detail = `HTTP ${res.status}`;
+          try {
+            const decoder = new TextDecoder();
+            detail = decoder.decode(res.data as ArrayBuffer).slice(0, 400);
+          } catch {
+            /* ignore */
+          }
+          throw new Error(detail || "Could not download PDF");
+        }
+
+        const filename = `prisma_data_export_${entityType}_${entityId.split("-")[0]}.pdf`;
+        const dir = FileSystem.cacheDirectory ?? "";
+        const dest = `${dir}${filename}`;
+
+        const buf = res.data as unknown as ArrayBuffer;
+        const b64 = arrayBufferToBase64(buf);
+        await FileSystem.writeAsStringAsync(dest, b64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(dest, {
+            mimeType: "application/pdf",
+            UTI: "com.adobe.pdf",
+          });
+        }
+      } finally {
+        setPdfBusy(false);
+      }
+    },
+    [],
+  );
+
+  return { downloadAccountingMonthPdf, downloadUserDataPdf, pdfBusy };
+}
+
+export function useUserDataExportFlow() {
+  const { downloadUserDataPdf, pdfBusy: exportBusy } = usePdfFlow();
+  return { downloadUserDataPdf, exportBusy };
 }

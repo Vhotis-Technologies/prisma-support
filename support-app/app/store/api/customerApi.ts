@@ -321,6 +321,36 @@ const customerApi = createApi({
         { type: "SupportCustomer", id: `b2c-${user_id}` },
       ],
     }),
+
+    emailUserDataPdf: builder.mutation<
+      { message?: string; recipient_email?: string },
+      {
+        entity_type: "b2c" | "fleet" | "partner";
+        entity_id: string;
+        recipient_email?: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/api/v1/customers/email_user_data_pdf/",
+        method: "POST",
+        data: body,
+      }),
+      transformResponse: (response: { data?: { message?: string; recipient_email?: string } }) =>
+        response.data ?? {},
+    }),
+
+    getCustomerDataExport: builder.query<
+      Record<string, unknown>,
+      { entityType: "b2c" | "fleet" | "partner"; entityId: string }
+    >({
+      query: ({ entityType, entityId }) => ({
+        url: "/api/v1/customers/get_customer_data_export/",
+        method: "GET",
+        params: { entity_type: entityType, entity_id: entityId },
+      }),
+      transformResponse: (response: { data?: { export?: Record<string, unknown> } }) =>
+        response.data?.export ?? {},
+    }),
   }),
 });
 
@@ -340,5 +370,7 @@ export const {
   useRemoveSupportBranchMutation,
   useSupportVehicleTransferMutation,
   useDeleteUserAccountMutation,
+  useEmailUserDataPdfMutation,
+  useGetCustomerDataExportQuery,
 } = customerApi;
 export default customerApi;

@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PersonalDataExportPanel from "../components/PersonalDataExportPanel";
 import StatusBanner from "../components/StatusBanner";
 import SubscriptionPanel from "../components/SubscriptionPanel";
 import { useCustomerDetailFlow } from "../app-hooks/useCustomerDetailFlow";
@@ -9,7 +10,7 @@ import { formatCurrency } from "../lib/format";
 export default function FleetDetailPage() {
   const { fleetId = "" } = useParams<{ fleetId: string }>();
   const flow = useCustomerDetailFlow(fleetId, "fleets");
-  const { fleet, isLoading, isError, errorMessage, notice, clearNotice } = flow;
+  const { fleet, isLoading, isError, errorMessage, notice, clearNotice, showNotice } = flow;
 
   if (!fleetId || (isError && !isLoading && !fleet)) {
     return (
@@ -46,6 +47,13 @@ export default function FleetDetailPage() {
       </section>
 
       <StatusBanner notice={notice} onDismiss={clearNotice} />
+
+      <PersonalDataExportPanel
+        entityType="fleet"
+        entityId={fleet.id}
+        defaultEmail={fleet.contact.email}
+        onNotice={showNotice}
+      />
 
       <section className="stat-grid">
         <article className="stat-card">

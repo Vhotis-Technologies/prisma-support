@@ -13,8 +13,11 @@ import AuthContextProvider from "./contexts/AuthContextProvider";
 import { AlertProvider } from "./contexts/AlertContext";
 import ModalServiceProvider from "./contexts/ModalServiceProvider";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFirebasePerformance } from "@/hooks/useFirebasePerformance";
 
 export default function RootLayout() {
+  useFirebasePerformance();
+
   return (
     <ReduxProvider store={store}>
       <Provider>

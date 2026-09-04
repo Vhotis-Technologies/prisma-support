@@ -25,7 +25,7 @@ import type {
   SupportVehicleTransferResponse,
   VehicleTransferAction,
 } from "../../types/vehicle";
-import { getData, patchData, postData } from "./client";
+import { api, getData, patchData, postData } from "./client";
 
 function parseListRows(
   rows: unknown[],
@@ -189,6 +189,123 @@ export async function deleteUserAccount(
 ): Promise<DeleteUserAccountResult> {
   const response = await postData<{ data?: DeleteUserAccountResult }>(
     SUPPORT_API.deleteUserAccount,
+    body,
+  );
+  return response.data ?? {};
+}
+
+export type ExportEntityType = "b2c" | "fleet" | "partner";
+
+export type CustomerDataExport = {
+  entity_type: ExportEntityType;
+  entity_id: string;
+  generated_at?: string;
+  title?: string;
+  recipient_hint?: string;
+  profile?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    account_status?: string;
+    is_guest?: boolean;
+    referral_code?: string;
+    stripe_customer_id?: string;
+    created_at?: string;
+  } | null;
+  fleet?: {
+    name?: string;
+    owner_name?: string;
+    owner_email?: string;
+    total_bookings?: number;
+    total_spend?: string | number;
+    branches?: unknown[];
+    admins?: unknown[];
+  } | null;
+  partner?: {
+    business_name?: string;
+    referral_code?: string;
+    total_referred?: number;
+    bank_account?: {
+      account_holder_name?: string;
+      iban_masked?: string;
+    } | null;
+    payout_requests?: unknown[];
+  } | null;
+  addresses?: unknown[];
+  vehicles?: Array<{
+    registration?: string;
+    make?: string;
+    model?: string;
+    year?: number;
+    branch?: string;
+  }>;
+  bookings?: Array<{
+    reference: string;
+    status?: string;
+    appointment_date?: string;
+    service?: string;
+    total?: string | number;
+  }>;
+  payments?: unknown[];
+  refunds?: unknown[];
+  referrals?: unknown[];
+};
+
+export async function getCustomerDataExport(
+  entityType: ExportEntityType,
+  entityId: string,
+): Promise<CustomerDataExport> {
+  const response = await getData<{ data?: { export?: CustomerDataExport } }>(
+    SUPPORT_API.customerDataExport,
+    { params: { entity_type: entityType, entity_id: entityId } },
+  );
+  const payload = response.data?.export;
+  if (!payload) throw new Error("Missing export package in response");
+  return payload;
+}
+
+export async function downloadUserDataPdf(
+  entityType: ExportEntityType,
+  entityId: string,
+): Promise<void> {
+  const response = await api.post<ArrayBuffer>(
+    SUPPORT_API.exportUserDataPdf,
+    { entity_type: entityType, entity_id: entityId },
+    {
+      responseType: "arraybuffer",
+      headers: { Accept: "*/*" },
+    },
+  );
+  const blob = new Blob([response.data], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `prisma_data_export_${entityType}_${entityId.split("-")[0]}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export type EmailUserDataPdfArg = {
+  entity_type: ExportEntityType;
+  entity_id: string;
+  recipient_email?: string;
+};
+
+export type EmailUserDataPdfResult = {
+  message?: string;
+  entity_type?: string;
+  entity_id?: string;
+  recipient_email?: string;
+  queued_by?: string;
+};
+
+export async function emailUserDataPdf(
+  body: EmailUserDataPdfArg,
+): Promise<EmailUserDataPdfResult> {
+  const response = await postData<{ data?: EmailUserDataPdfResult }>(
+    SUPPORT_API.emailUserDataPdf,
     body,
   );
   return response.data ?? {};

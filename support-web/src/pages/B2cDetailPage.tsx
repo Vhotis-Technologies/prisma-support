@@ -4,6 +4,7 @@ import AppShell from "../components/AppShell";
 import ComplimentaryWashesCard from "../components/ComplimentaryWashesCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import LoyaltyCard from "../components/LoyaltyCard";
+import PersonalDataExportPanel from "../components/PersonalDataExportPanel";
 import StatusBanner from "../components/StatusBanner";
 import SubscriptionPanel from "../components/SubscriptionPanel";
 import VehicleList from "../components/VehicleList";
@@ -21,7 +22,7 @@ export default function B2cDetailPage() {
     navigate("/customers", { replace: true });
   }, [navigate]);
   const flow = useCustomerDetailFlow(customerId, "b2c", onDeleted);
-  const { b2c, isLoading, isError, errorMessage, notice, clearNotice } = flow;
+  const { b2c, isLoading, isError, errorMessage, notice, clearNotice, showNotice } = flow;
 
   if (!customerId || (isError && !isLoading && !b2c)) {
     return (
@@ -155,6 +156,13 @@ export default function B2cDetailPage() {
           removingId={flow.removingVehicleId}
         />
       </section>
+
+      <PersonalDataExportPanel
+        entityType="b2c"
+        entityId={b2c.id}
+        defaultEmail={b2c.contact.email}
+        onNotice={showNotice}
+      />
 
       {!b2c.is_guest ? (
         <section className="card">

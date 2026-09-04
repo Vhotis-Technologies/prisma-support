@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import StyledButton from "@/app/components/helpers/StyledButton";
 import StyledText from "@/app/components/helpers/StyledText";
+import PersonalDataExportCard from "@/app/components/customers/PersonalDataExportCard";
 import { useCustomerFlow } from "@/app/app_hooks/useCustomerFlow";
 import { useGetSupportPartnerReferredUsersQuery } from "@/app/store/api/customerApi";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -189,6 +190,12 @@ export default function PartnerDetailsScreen() {
           {partner.address.country}
         </StyledText>
       </View>
+
+      <PersonalDataExportCard
+        entityType="partner"
+        entityId={partner.id}
+        defaultEmail={partner.contact.email}
+      />
     </ScrollView>
   );
 }

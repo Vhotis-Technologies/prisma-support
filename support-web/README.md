@@ -87,7 +87,7 @@ The SPA is an nginx container. `VITE_API_URL` and `VITE_BASE` are Docker build a
 | Env | URL | API |
 | --- | --- | --- |
 | Local | [http://localhost:5174](http://localhost:5174) | `http://localhost:8002` |
-| Staging | `/desk/` on client nginx, or host `:8382` | `/support` (same origin) |
+| Staging | `https://staging.desk.prismavalet.com` (or host `:8382`) | `https://staging.support.prismavalet.com` |
 | Production | host `:8082` (put NPM / DNS in front) | `https://support.prismavalet.com` |
 
 ```bash
@@ -98,9 +98,7 @@ docker compose up -d --build
 docker compose -f docker-compose-staging.yml up -d --build
 ```
 
-Reload **client** staging nginx after pulling the `/desk/` location (`client/nginx/conf.d/default.conf`), or `/desk/` will 502 until that container reloads.
-
-Password-reset emails use `SUPPORT_WEB_URL` (or `SUPPORT_WEB_BASE_URL`) → `{origin}/reset-password?token=`. If unset, they still use Django `/api/v1/auth/web-reset-password/`. Staging `.env.staging` should set `SUPPORT_WEB_URL` to the public `/desk` origin (no trailing slash). CORS also allows `localhost:5174` and the SPA origin when that env is set.
+Password-reset emails use `SUPPORT_WEB_URL` (or `SUPPORT_WEB_BASE_URL`) → `{origin}/reset-password?token=`. If unset, they still use Django `/api/v1/auth/web-reset-password/`. Staging `.env.staging` should set `SUPPORT_WEB_URL=https://staging.desk.prismavalet.com`. CORS also allows `localhost:5174` and the SPA origin when that env is set.
 
 `index.html` and nginx send `noindex`. This is an internal portal.
 

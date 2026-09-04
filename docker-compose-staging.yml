@@ -1,7 +1,7 @@
-# Support — standalone staging. Start client staging first (shared client_staging_redis).
+# Support — standalone staging. Start parent compose first (shared client_staging_redis).
 # docker compose -f docker-compose-staging.yml up -d --build
-# HTTP: client_staging_nginx — /support/ → API, /desk/ → support-web SPA.
-# Direct SPA: host :8382 (Vite base /desk/, so prefer /desk/ or the nginx path).
+# Public hosts: staging.support.prismavalet.com (API), staging.desk.prismavalet.com (SPA).
+# Direct SPA: host :8382
 
 name: prisma_support_staging
 
@@ -50,15 +50,15 @@ services:
       timeout: 10s
       retries: 3
 
-  # SPA at host :8382 and, via client_staging_nginx, https://<ngrok>/desk/
+  # SPA at host :8382 / https://staging.desk.prismavalet.com
   support_staging_web:
     build:
       context: ./support-web
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: /support
-        VITE_WS_URL: wss://bat-useful-penguin.ngrok-free.app/support
-        VITE_BASE: /desk/
+        VITE_API_URL: https://staging.support.prismavalet.com
+        VITE_WS_URL: wss://staging.support.prismavalet.com
+        VITE_BASE: /
     container_name: support_staging_web
     ports:
       - "8382:80"

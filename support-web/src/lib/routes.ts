@@ -49,6 +49,9 @@ export const SUPPORT_API = {
   removeBranch: "/api/v1/customers/remove_branch/",
   vehicleTransfer: "/api/v1/customers/vehicle_transfer/",
   deleteUserAccount: "/api/v1/customers/delete_user_account/",
+  exportUserDataPdf: "/api/v1/customers/export_user_data_pdf/",
+  emailUserDataPdf: "/api/v1/customers/email_user_data_pdf/",
+  customerDataExport: "/api/v1/customers/get_customer_data_export/",
 
   crewList: "/api/v1/crew/get_crew_list/",
   crewDetail: "/api/v1/crew/get_crew_detail/",
