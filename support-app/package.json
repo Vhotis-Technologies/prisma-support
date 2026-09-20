@@ -21,7 +21,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.6",
     "device": "^0.3.12",
-    "expo": "~54.0.34",
+    "expo": "~57.0.24",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
