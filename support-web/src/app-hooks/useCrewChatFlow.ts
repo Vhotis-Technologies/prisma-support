@@ -17,6 +17,7 @@ import {
   getRefreshToken,
   setSession,
 } from "../lib/authStorage";
+import { jwtExpiresSoon, resolveApiBaseUrl } from "../lib/publicUrls";
 import { SUPPORT_API } from "../lib/routes";
 
 type ThreadState =
@@ -58,9 +59,7 @@ export function useCrewChatFlow(threadId: string) {
       return null;
     }
     try {
-      const apiBaseUrl = (
-        import.meta.env.VITE_API_URL || "http://localhost:8002"
-      ).replace(/\/$/, "");
+      const apiBaseUrl = resolveApiBaseUrl();
       const response = await axios.post<{ access: string; refresh?: string }>(
         `${apiBaseUrl}${SUPPORT_API.refresh}`,
         { refresh: refreshToken },
@@ -77,7 +76,12 @@ export function useCrewChatFlow(threadId: string) {
 
   const getValidAccessToken = useCallback(async (): Promise<string | null> => {
     const current = getAccessToken();
-    if (!current) return null;
+    if (current && !jwtExpiresSoon(current)) {
+      return current;
+    }
+    if (!getRefreshToken()) {
+      return current;
+    }
     const refreshed = await refreshAccessToken();
     return refreshed || current;
   }, [refreshAccessToken]);

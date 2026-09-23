@@ -15,10 +15,9 @@ import {
   setSession,
 } from "./authStorage";
 import { PUBLIC_PATH_PREFIXES, SUPPORT_API } from "./routes";
+import { resolveApiBaseUrl } from "./publicUrls";
 
-const apiBaseUrl = (
-  import.meta.env.VITE_API_URL || "http://localhost:8002"
-).replace(/\/$/, "");
+const apiBaseUrl = resolveApiBaseUrl();
 
 const usesNgrok =
   /ngrok(-free)?\.(app|dev|io)\b/i.test(apiBaseUrl) ||

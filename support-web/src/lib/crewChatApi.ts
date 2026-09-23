@@ -3,6 +3,7 @@
  * Uses REST API + WebSockets for bidirectional communication.
  */
 import { api } from "./api";
+import { resolveWsBaseUrl } from "./publicUrls";
 
 export interface CrewChatThread {
   id: string;
@@ -130,10 +131,7 @@ export function connectToCrewChatThread(
   onConnectionChange: (connected: boolean) => void,
   onClose?: (event: CloseEvent) => void
 ): WebSocket {
-  const wsBaseUrl = (import.meta.env.VITE_WS_URL || "ws://localhost:8002").replace(
-    /\/$/,
-    ""
-  );
+  const wsBaseUrl = resolveWsBaseUrl();
   const wsUrl = `${wsBaseUrl}/ws/crew-chat/${threadId}/?token=${accessToken}`;
 
   const ws = new WebSocket(wsUrl);

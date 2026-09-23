@@ -24,6 +24,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-https://support.prismavalet.com}
+        VITE_WS_URL: ${VITE_WS_URL:-wss://support.prismavalet.com}
         VITE_BASE: ${VITE_BASE:-/}
     container_name: support_web
     ports:

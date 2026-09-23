@@ -6,7 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
-# Baked at build time. Staging desk: staging.desk.prismavalet.com → API staging.support.prismavalet.com.
+# Baked at build time. Production compose must pass both; missing VITE_WS_URL
+# used to bake ws://localhost:8002 into desk.prismavalet.com.
 ARG VITE_API_URL=http://localhost:8002
 ARG VITE_WS_URL=ws://localhost:8002
 ARG VITE_BASE=/

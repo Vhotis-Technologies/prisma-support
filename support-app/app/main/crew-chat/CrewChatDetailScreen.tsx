@@ -24,7 +24,11 @@ import { GiftedChat, IMessage, Send, Bubble, InputToolbar } from "react-native-g
 import Constants from "expo-constants";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import StyledText from "@/app/components/helpers/StyledText";
-import { useAppSelector } from "@/app/store/main_store";
+import { useAppDispatch, useAppSelector } from "@/app/store/main_store";
+import {
+  ensureSupportAccessToken,
+  isAccessTokenFresh,
+} from "@/app/utils/accessToken";
 import {
   useGetCrewChatThreadQuery,
   useCloseCrewChatThreadMutation,
@@ -43,8 +47,14 @@ export default function CrewChatDetailScreen() {
   const tintColor = useThemeColor({}, "tint");
   const mutedText = useThemeColor({ light: "#757575", dark: "#9E9E9E" }, "text");
   
+  const dispatch = useAppDispatch();
   const accessToken = useAppSelector((s) => s.auth.access);
+  const refreshToken = useAppSelector((s) => s.auth.refresh);
   const userProfile = useAppSelector((s) => s.auth.user);
+  const accessRef = useRef(accessToken);
+  const refreshRef = useRef(refreshToken);
+  accessRef.current = accessToken;
+  refreshRef.current = refreshToken;
   
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -66,19 +76,15 @@ export default function CrewChatDetailScreen() {
   const [closeThread] = useCloseCrewChatThreadMutation();
   const [reopenThread] = useReopenCrewChatThreadMutation();
   
-  // Decode JWT to check if token is valid
-  const isTokenValid = useCallback((token: string): boolean => {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiryTime = payload.exp * 1000;
-      const now = Date.now();
-      return expiryTime > (now + 30000);
-    } catch (error) {
-      console.error("Failed to decode token:", error);
-      return false;
-    }
-  }, []);
-  
+  const ensureAccess = useCallback(async (): Promise<string | null> => {
+    return ensureSupportAccessToken({
+      apiUrl,
+      access: accessRef.current,
+      refresh: refreshRef.current,
+      dispatch,
+    });
+  }, [apiUrl, dispatch]);
+
   useEffect(() => {
     if (threadResponse?.data?.thread) {
       const thread = threadResponse.data.thread;
@@ -103,18 +109,18 @@ export default function CrewChatDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       mountedRef.current = true;
-      
-      if (!accessToken || !wsUrl || !threadId) {
+
+      if (!wsUrl || !threadId) {
         return;
       }
-      
-      if (!isTokenValid(accessToken)) {
-        console.warn("Token is expired or invalid");
-        return;
-      }
-      
-      connectWebSocket();
-      
+
+      void (async () => {
+        const token = await ensureAccess();
+        if (token && mountedRef.current) {
+          connectWebSocket(token);
+        }
+      })();
+
       return () => {
         mountedRef.current = false;
         if (wsRef.current) {
@@ -124,19 +130,19 @@ export default function CrewChatDetailScreen() {
         }
         setIsConnected(false);
       };
-    }, [accessToken, wsUrl, threadId, isTokenValid])
+    }, [wsUrl, threadId, ensureAccess])
   );
   
-  const connectWebSocket = () => {
-    if (!wsUrl || !threadId || !accessToken) return;
+  const connectWebSocket = (token: string) => {
+    if (!wsUrl || !threadId) return;
     
-    if (!isTokenValid(accessToken)) {
+    if (!isAccessTokenFresh(token)) {
       console.warn("Cannot connect: token is expired");
       return;
     }
     
     console.log("Connecting to crew chat WebSocket...");
-    const ws = new WebSocket(`${wsUrl}/crew-chat/${threadId}/?token=${accessToken}`);
+    const ws = new WebSocket(`${wsUrl}/crew-chat/${threadId}/?token=${token}`);
     wsRef.current = ws;
     
     ws.onopen = () => {
@@ -192,13 +198,16 @@ export default function CrewChatDetailScreen() {
         setIsConnected(false);
       }
       
-      // Only reconnect if still on screen and token is valid
-      if (mountedRef.current && isTokenValid(accessToken) && event.code !== 1000) {
+      if (mountedRef.current && event.code !== 1000) {
         console.log("Attempting to reconnect in 3 seconds...");
         setTimeout(() => {
-          if (mountedRef.current && wsUrl && threadId && isTokenValid(accessToken)) {
-            connectWebSocket();
-          }
+          void (async () => {
+            if (!mountedRef.current || !wsUrl || !threadId) return;
+            const next = await ensureAccess();
+            if (next && mountedRef.current) {
+              connectWebSocket(next);
+            }
+          })();
         }, 3000);
       }
     };
